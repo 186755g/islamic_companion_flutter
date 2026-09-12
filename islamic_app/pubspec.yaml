@@ -1,0 +1,63 @@
+name: islamic_companion
+description: "تطبيق إسلامي محلي - أذكار، مواقيت صلاة، ومتابعة الفروض والسنن"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+
+  # State management
+  provider: ^6.1.2
+
+  # Local storage
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  shared_preferences: ^2.2.3
+
+  # Prayer times calculation (Adhan algorithm)
+  adhan_dart: ^1.2.0
+
+  # Local notifications for adhan alerts
+  flutter_local_notifications: ^17.2.4
+
+  # Timezone data (required by flutter_local_notifications for scheduling)
+  timezone: ^0.9.4
+
+  # Geolocation (needed to calculate prayer times accurately per-location)
+  geolocator: ^13.0.1
+  permission_handler: ^11.3.1
+
+  # Arabic-friendly fonts
+  google_fonts: ^6.2.1
+
+  # Date/Hijri calendar support
+  hijri: ^3.0.0
+
+  intl: ^0.19.0
+  uuid: ^4.4.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  hive_generator: ^2.0.1
+  build_runner: ^2.4.11
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  # ⚠️ خط Amiri معطّل افتراضياً لأن ملفات .ttf غير مرفقة فعلياً.
+  # لو نزّلت الخط ووضعت الملفين في assets/fonts/، احذف علامات # من الأسطر
+  # التالية لتفعيله. تركه مفعّلاً بدون الملفات الفعلية يفشل "flutter pub get".
+  # assets:
+  #   - assets/fonts/
+  # fonts:
+  #   - family: Amiri
+  #     fonts:
+  #       - asset: assets/fonts/Amiri-Regular.ttf
+  #       - asset: assets/fonts/Amiri-Bold.ttf
+  #         weight: 700
