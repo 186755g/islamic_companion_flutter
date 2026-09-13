@@ -40,7 +40,7 @@ class NotificationService {
     // نفّذ نفس الأمر الذي استخدمته سابقاً بنجاح لإيجاد الاسم الصحيح:
     //   grep -R "class CalculationMethod" -n ~/.pub-cache/hosted/pub.dev/adhan_dart-*/lib
     // وعدّل الاستدعاء أدناه ليطابق الـ API الفعلي المكتشف.
-    final params = CalculationMethod.muslim_world_league();
+  final params = CalculationMethod.muslim_world_league();
     return PrayerTimes(
       coordinates: coordinates,
       date: DateTime.now(),
