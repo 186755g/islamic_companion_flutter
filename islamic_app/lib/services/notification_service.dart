@@ -11,7 +11,8 @@ import '../models/prayer_model.dart';
 /// إصدار adhan_dart المثبَّت لديك عبر `flutter pub deps` أو ملفات الحزمة
 /// في .pub-cache، لأن أسماء الـ API قد تختلف بين الإصدارات.
 class NotificationService {
-  static final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
+  static final FlutterLocalNotificationsPlugin _plugin =
+      FlutterLocalNotificationsPlugin();
 
   static Future<void> init() async {
     tzdata.initializeTimeZones();
@@ -22,7 +23,8 @@ class NotificationService {
       requestBadgePermission: true,
       requestSoundPermission: true,
     );
-    const initSettings = InitializationSettings(android: androidInit, iOS: iosInit);
+    const initSettings =
+        InitializationSettings(android: androidInit, iOS: iosInit);
     await _plugin.initialize(initSettings);
 
     final androidImpl = _plugin.resolvePlatformSpecificImplementation<
@@ -35,12 +37,7 @@ class NotificationService {
     required double longitude,
   }) {
     final coordinates = Coordinates(latitude, longitude);
-    // ⚠️ لم أستطع التحقق من هذا الاسم مقابل نسخة الحزمة الفعلية في بيئتك
-    // (لا أملك وصولاً لمصدر الحزمة من هنا). إن فشل التحليل على هذا السطر،
-    // نفّذ نفس الأمر الذي استخدمته سابقاً بنجاح لإيجاد الاسم الصحيح:
-    //   grep -R "class CalculationMethod" -n ~/.pub-cache/hosted/pub.dev/adhan_dart-*/lib
-    // وعدّل الاستدعاء أدناه ليطابق الـ API الفعلي المكتشف.
-    final params = CalculationMethod.muslimWorldLeague.getParameters();
+    final params = CalculationMethodParameters.muslimWorldLeague();
     return PrayerTimes(
       coordinates: coordinates,
       date: DateTime.now(),
@@ -48,15 +45,16 @@ class NotificationService {
     );
   }
 
-  static Future<void> scheduleDailyPrayerNotifications(PrayerTimes times) async {
+  static Future<void> scheduleDailyPrayerNotifications(
+      PrayerTimes times) async {
     await _plugin.cancelAll();
 
     final entries = <FardPrayer, DateTime>{
-      FardPrayer.fajr: times.fajr!,
-      FardPrayer.dhuhr: times.dhuhr!,
-      FardPrayer.asr: times.asr!,
-      FardPrayer.maghrib: times.maghrib!,
-      FardPrayer.isha: times.isha!,
+      FardPrayer.fajr: times.fajr,
+      FardPrayer.dhuhr: times.dhuhr,
+      FardPrayer.asr: times.asr,
+      FardPrayer.maghrib: times.maghrib,
+      FardPrayer.isha: times.isha,
     };
 
     int id = 0;
@@ -90,7 +88,8 @@ class NotificationService {
       priority: Priority.high,
     );
     const iosDetails = DarwinNotificationDetails(presentSound: true);
-    const details = NotificationDetails(android: androidDetails, iOS: iosDetails);
+    const details =
+        NotificationDetails(android: androidDetails, iOS: iosDetails);
 
     await _plugin.zonedSchedule(
       id,
@@ -99,7 +98,8 @@ class NotificationService {
       tz.TZDateTime.from(dateTime, tz.local),
       details,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 }

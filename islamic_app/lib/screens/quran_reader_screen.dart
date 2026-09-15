@@ -31,10 +31,12 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   }
 
   Future<void> _persistBookmark() async {
-    await context.read<QuranProvider>().saveLastRead(page: currentPage, surahNumber: 1, ayahNumber: 1);
-    await context.read<StreakProvider>().registerActivity();
+    final quranProvider = context.read<QuranProvider>();
+    final streakProvider = context.read<StreakProvider>();
+    await quranProvider.saveLastRead(page: currentPage, surahNumber: 1, ayahNumber: 1);
+    await streakProvider.registerActivity();
 
-    final active = context.read<QuranProvider>().activePlan;
+    final active = quranProvider.activePlan;
     if (active != null && currentPage > active.lastCompletedPage) {
       await context.read<QuranProvider>().updatePlanProgress(active.id, currentPage);
     }

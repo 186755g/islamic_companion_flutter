@@ -148,7 +148,7 @@ class _WeeklyPointsCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text('نقاطك هذا الأسبوع', style: TextStyle(color: AppColors.lightGold, fontSize: 14)),
+            const Text('نقاطك هذا الأسبوع', style: const TextStyle(color: AppColors.lightGold, fontSize: 14)),
             const SizedBox(height: 4),
             Text('${pointsProv.weeklyPoints} / ${pointsProv.weeklyTarget}',
                 style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
