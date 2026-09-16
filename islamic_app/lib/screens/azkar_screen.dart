@@ -10,7 +10,8 @@ class AzkarScreen extends StatefulWidget {
   State<AzkarScreen> createState() => _AzkarScreenState();
 }
 
-class _AzkarScreenState extends State<AzkarScreen> with SingleTickerProviderStateMixin {
+class _AzkarScreenState extends State<AzkarScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -75,7 +76,9 @@ class _AzkarList extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              TextButton(onPressed: () => prov.resetCategory(category), child: const Text('إعادة تعيين')),
+              TextButton(
+                  onPressed: () => prov.resetCategory(category),
+                  child: const Text('إعادة تعيين')),
             ],
           ),
         ),
@@ -113,9 +116,14 @@ class _ZikrCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(zikr.arabicText, textAlign: TextAlign.right, style: const TextStyle(fontSize: 17, height: 1.8)),
+                    Text(zikr.arabicText,
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(fontSize: 17, height: 1.8)),
                     const SizedBox(height: 6),
-                    Text(zikr.source, textAlign: TextAlign.right, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    Text(zikr.source,
+                        textAlign: TextAlign.right,
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey.shade600)),
                   ],
                 ),
               ),
@@ -134,13 +142,19 @@ class _CounterBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (zikr.isCompleted) {
-      return const CircleAvatar(radius: 22, backgroundColor: AppColors.success, child: Icon(Icons.check, color: Colors.white));
+      return const CircleAvatar(
+          radius: 22,
+          backgroundColor: AppColors.success,
+          child: Icon(Icons.check, color: Colors.white));
     }
     return CircleAvatar(
       radius: 22,
       backgroundColor: AppColors.gold.withValues(alpha: 0.15),
       child: Text('${zikr.currentCount}/${zikr.targetCount}',
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.deepGreen)),
+          style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: AppColors.deepGreen)),
     );
   }
 }
