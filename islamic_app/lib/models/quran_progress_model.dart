@@ -1,3 +1,4 @@
+/// معلومات أساسية عن سورة (للفهرسة والانتقال السريع)
 class SurahInfo {
   final int number;
   final String arabicName;
@@ -12,18 +13,18 @@ class SurahInfo {
   });
 }
 
+/// آخر موضع قراءة محفوظ.
 class QuranBookmark {
   final int page;
   final int surahNumber;
   final int ayahNumber;
   final DateTime savedAt;
 
-  QuranBookmark({
-    required this.page,
-    required this.surahNumber,
-    required this.ayahNumber,
-    required this.savedAt,
-  });
+  QuranBookmark(
+      {required this.page,
+      required this.surahNumber,
+      required this.ayahNumber,
+      required this.savedAt});
 
   Map<String, dynamic> toJson() => {
         'page': page,
@@ -40,6 +41,7 @@ class QuranBookmark {
       );
 }
 
+/// خطة ختمة مخصصة أو محددة مسبقاً.
 class KhatmahPlan {
   final String id;
   final String title;
@@ -47,8 +49,9 @@ class KhatmahPlan {
   final DateTime startDate;
   int lastCompletedPage;
   bool isActive;
+  final int totalPages;
 
-  static const int totalMushafPages = 604;
+  static const int defaultTotalPages = 604;
 
   KhatmahPlan({
     required this.id,
@@ -57,18 +60,15 @@ class KhatmahPlan {
     required this.startDate,
     this.lastCompletedPage = 0,
     this.isActive = true,
+    this.totalPages = defaultTotalPages,
   });
 
-  double get pagesPerDay => totalMushafPages / totalDays;
-
+  double get pagesPerDay => totalPages / totalDays;
   double get progressRatio =>
-      (lastCompletedPage / totalMushafPages).clamp(0, 1).toDouble();
-
+      (lastCompletedPage / totalPages).clamp(0, 1).toDouble();
   int get progressPercent => (progressRatio * 100).round();
-
   DateTime get expectedEndDate => startDate.add(Duration(days: totalDays));
-
-  bool get isCompleted => lastCompletedPage >= totalMushafPages;
+  bool get isCompleted => lastCompletedPage >= totalPages;
 
   int get pagesBehindSchedule {
     final daysElapsed = DateTime.now().difference(startDate).inDays + 1;
@@ -84,6 +84,7 @@ class KhatmahPlan {
         'startDate': startDate.toIso8601String(),
         'lastCompletedPage': lastCompletedPage,
         'isActive': isActive,
+        'totalPages': totalPages,
       };
 
   factory KhatmahPlan.fromJson(Map<dynamic, dynamic> json) => KhatmahPlan(
@@ -93,6 +94,7 @@ class KhatmahPlan {
         startDate: DateTime.parse(json['startDate']),
         lastCompletedPage: json['lastCompletedPage'] ?? 0,
         isActive: json['isActive'] ?? true,
+        totalPages: json['totalPages'] ?? defaultTotalPages,
       );
 
   static List<int> predefinedDurations() => [30, 60, 90];

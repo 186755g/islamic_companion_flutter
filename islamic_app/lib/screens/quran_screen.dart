@@ -34,10 +34,7 @@ class QuranScreen extends StatelessWidget {
                 style: const TextStyle(color: Colors.white),
                 textAlign: TextAlign.right,
               ),
-              subtitle: bookmark != null
-                  ? Text('آخر حفظ: سورة رقم ${bookmark.surahNumber}، آية ${bookmark.ayahNumber}',
-                      style: const TextStyle(color: Colors.white70, fontSize: 12), textAlign: TextAlign.right)
-                  : null,
+                subtitle: null,
               trailing: const Icon(Icons.chevron_left, color: Colors.white),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => QuranReaderScreen(startPage: bookmark?.page ?? 1)),
@@ -131,7 +128,7 @@ class _KhatmahPlanCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-            Text('${plan.pagesPerDay.toStringAsFixed(1)} صفحة/يوم لإتمامها خلال ${plan.totalDays} يوماً',
+            Text('${plan.pagesPerDay.toStringAsFixed(1)} صفحة/يوم من إجمالي ${plan.totalPages} صفحة، لإتمامها خلال ${plan.totalDays} يوماً',
                 textAlign: TextAlign.right, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
             const SizedBox(height: 10),
             ClipRRect(
