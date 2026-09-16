@@ -4,8 +4,8 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tzdata;
 import '../models/prayer_model.dart';
 
-/// يحسب مواقيت الصلاة عبر مكتبة adhan_dart، ويجدول إشعارات محلية عند
-/// دخول كل وقت (لا تحتاج إنترنت).
+/// يحسب مواقيت الصلاة عبر مكتبة adhan_dart، ويجدول إشعارات محلية قبل الصلاة
+/// بعشر دقائق وعند دخول وقتها (لا تحتاج إنترنت).
 ///
 /// ⚠️ ملاحظة إصدار: تحقق دوماً من الاسم الفعلي لثوابت طريقة الحساب في
 /// إصدار adhan_dart المثبَّت لديك عبر `flutter pub deps` أو ملفات الحزمة
@@ -62,14 +62,25 @@ class NotificationService {
       FardPrayer.isha: times.isha,
     };
 
-    int id = 0;
+    final now = DateTime.now();
     for (final entry in entries.entries) {
-      if (entry.value.isAfter(DateTime.now())) {
+      final prayerTime = entry.value;
+      if (prayerTime.isAfter(now)) {
         await _scheduleAt(
-          id: id++,
+          id: entry.key.index,
           title: 'حان الآن وقت صلاة ${entry.key.arabicName}',
           body: 'حي على الصلاة، حي على الفلاح',
-          dateTime: entry.value,
+          dateTime: prayerTime,
+        );
+      }
+
+      final reminderTime = prayerTime.subtract(const Duration(minutes: 10));
+      if (reminderTime.isAfter(now)) {
+        await _scheduleAt(
+          id: 100 + entry.key.index,
+          title: 'اقتربت صلاة ${entry.key.arabicName}',
+          body: 'تبقى 10 دقائق على دخول وقت الصلاة.',
+          dateTime: reminderTime,
         );
       }
     }

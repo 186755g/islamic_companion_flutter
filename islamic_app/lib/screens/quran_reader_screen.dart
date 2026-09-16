@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:provider/provider.dart';
@@ -76,14 +78,22 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   }
 
   Future<void> _persistBookmark() async {
-    await _quranProvider.saveLastRead(
-        page: _currentPage, surahNumber: 0, ayahNumber: 0);
+    await _saveBookmarkOnly();
     await _streakProvider.registerActivity();
     final active = _quranProvider.activePlan;
     if (active != null && _currentPage > active.lastCompletedPage) {
       await _quranProvider.updatePlanProgress(active.id, _currentPage);
     }
   }
+
+  Future<void> _saveBookmarkOnly() async {
+    await _quranProvider.saveLastRead(
+        page: _currentPage, surahNumber: 0, ayahNumber: 0);
+    if (mounted) setState(() {});
+  }
+
+  bool get _isCurrentPageBookmarked =>
+      _quranProvider.bookmark?.page == _currentPage;
 
   Widget _buildBody() {
     if (_isLoading) {
@@ -119,7 +129,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       scrollDirection: Axis.horizontal,
       onDocumentLoaded: (document) =>
           setState(() => _totalPages = document.pagesCount),
-      onPageChanged: (page) => setState(() => _currentPage = page),
+      onPageChanged: (page) {
+        setState(() => _currentPage = page);
+        unawaited(_saveBookmarkOnly());
+      },
     );
   }
 
@@ -133,10 +146,14 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
             : 'صفحة $_currentPage من $_totalPages'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.bookmark_add_outlined),
-            tooltip: 'حفظ العلامة يدوياً',
+            icon: Icon(_isCurrentPageBookmarked
+                ? Icons.bookmark
+                : Icons.bookmark_add_outlined),
+            tooltip: _isCurrentPageBookmarked
+                ? 'موضع القراءة محفوظ'
+                : 'حفظ موضع القراءة',
             onPressed: () async {
-              await _persistBookmark();
+              await _saveBookmarkOnly();
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('تم حفظ موضعك بنجاح ✓')));
