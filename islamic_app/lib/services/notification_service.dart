@@ -13,8 +13,10 @@ import '../models/prayer_model.dart';
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
+  static bool _initialized = false;
 
   static Future<void> init() async {
+    if (_initialized) return;
     tzdata.initializeTimeZones();
 
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -25,11 +27,13 @@ class NotificationService {
     );
     const initSettings =
         InitializationSettings(android: androidInit, iOS: iosInit);
-    await _plugin.initialize(initSettings);
+    final initialized = await _plugin.initialize(initSettings);
+    if (initialized != true) return;
 
     final androidImpl = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
     await androidImpl?.requestNotificationsPermission();
+    _initialized = true;
   }
 
   static PrayerTimes calculateToday({
@@ -47,6 +51,7 @@ class NotificationService {
 
   static Future<void> scheduleDailyPrayerNotifications(
       PrayerTimes times) async {
+    if (!_initialized) return;
     await _plugin.cancelAll();
 
     final entries = <FardPrayer, DateTime>{

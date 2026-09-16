@@ -16,7 +16,9 @@ class PrayerProvider extends ChangeNotifier {
   }
 
   PrayerTimes? _times;
-  late DailyPrayerLog _log;
+  DailyPrayerLog _log = DailyPrayerLog(
+    dateKey: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+  );
   bool _loading = true;
   bool _requestingLocationPermission = false;
   String? _locationNotice;
@@ -42,6 +44,7 @@ class PrayerProvider extends ChangeNotifier {
         latitude: 21.4225,
         longitude: 39.8262,
       );
+      _log = DailyPrayerLog(dateKey: _todayKey);
       _locationNotice ??=
           'تم استخدام مواقيت مكة مؤقتًا بسبب مشكلة في تحديد الموقع.';
     } finally {

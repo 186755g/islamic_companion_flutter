@@ -15,7 +15,11 @@ import 'screens/home_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await StorageService.init();
-  await NotificationService.init();
+  try {
+    await NotificationService.init().timeout(const Duration(seconds: 5));
+  } catch (error, stackTrace) {
+    debugPrint('Notification initialization failed: $error\n$stackTrace');
+  }
   runApp(const IslamicCompanionApp());
 }
 
@@ -38,8 +42,10 @@ class IslamicCompanionApp extends StatelessWidget {
           update: (ctx, streak, azkar, _) => azkar.streakProvider = streak,
         ),
         ChangeNotifierProxyProvider<PointsProvider, PrayerProvider>(
-          create: (ctx) => PrayerProvider(pointsProvider: ctx.read<PointsProvider>()),
-          update: (ctx, points, previous) => previous ?? PrayerProvider(pointsProvider: points),
+          create: (ctx) =>
+              PrayerProvider(pointsProvider: ctx.read<PointsProvider>()),
+          update: (ctx, points, previous) =>
+              previous ?? PrayerProvider(pointsProvider: points),
         ),
       ],
       child: MaterialApp(
@@ -48,7 +54,8 @@ class IslamicCompanionApp extends StatelessWidget {
         theme: AppTheme.theme,
         locale: const Locale('ar'),
         builder: (context, child) {
-          return Directionality(textDirection: TextDirection.rtl, child: child!);
+          return Directionality(
+              textDirection: TextDirection.rtl, child: child!);
         },
         home: const HomeScreen(),
       ),
