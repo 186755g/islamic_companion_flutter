@@ -17,17 +17,21 @@ class HadithOfTheDayCard extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HadithScreen())),
+        onTap: () => Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const HadithScreen())),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Row(
+              const Row(
                 children: [
-                  const Icon(Icons.auto_stories, color: AppColors.gold, size: 18),
-                  const SizedBox(width: 6),
-                  const Text('حديث اليوم', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.deepGreen)),
+                  Icon(Icons.auto_stories, color: AppColors.gold, size: 18),
+                  SizedBox(width: 6),
+                  Text('حديث اليوم',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.deepGreen)),
                 ],
               ),
               const SizedBox(height: 8),
@@ -40,7 +44,8 @@ class HadithOfTheDayCard extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text('${hadith.source} — ${hadith.narrator}',
-                  textAlign: TextAlign.right, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                  textAlign: TextAlign.right,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
             ],
           ),
         ),

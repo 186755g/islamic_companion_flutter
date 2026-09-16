@@ -19,12 +19,15 @@ class KhatmahCompletionScreen extends StatelessWidget {
             const Text(
               'بارك الله لك، تمت الختمة بحمد الله',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
-            _SectionCard(
+            const _SectionCard(
               title: 'من فضائل ختم القرآن',
-              child: const Text(
+              child: Text(
                 'القرآن الكريم شفيع لصاحبه يوم القيامة، وقد ثبت في الحديث الصحيح '
                 'عن النبي ﷺ الحثّ على قراءته وتدبره. وكان كثير من السلف يجتهدون '
                 'في ختمه ويجتمعون عند دعاء الختمة رجاءً لإجابة الدعاء.',
@@ -33,21 +36,24 @@ class KhatmahCompletionScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            _SectionCard(
+            const _SectionCard(
               title: 'دعاء ختم القرآن',
-              child: const Text(
+              child: Text(
                 'اللَّهُمَّ ارْحَمْنِي بِالْقُرْآنِ، وَاجْعَلْهُ لِي إِمَامًا وَنُورًا وَهُدًى وَرَحْمَةً، '
                 'اللَّهُمَّ ذَكِّرْنِي مِنْهُ مَا نُسِّيتُ، وَعَلِّمْنِي مِنْهُ مَا جَهِلْتُ، '
                 'وَارْزُقْنِي تِلَاوَتَهُ آنَاءَ اللَّيْلِ وَأَطْرَافَ النَّهَارِ، وَاجْعَلْهُ لِي حُجَّةً '
                 'يَا رَبَّ الْعَالَمِينَ.',
                 textAlign: TextAlign.right,
-                style: TextStyle(height: 2.0, fontSize: 16, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    height: 2.0, fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
             const SizedBox(height: 28),
             Center(
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: AppColors.deepGreen),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.gold,
+                    foregroundColor: AppColors.deepGreen),
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('ابدأ ختمة جديدة'),
               ),
@@ -76,7 +82,11 @@ class _SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.deepGreen, fontSize: 15)),
+          Text(title,
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.deepGreen,
+                  fontSize: 15)),
           const SizedBox(height: 10),
           child,
         ],

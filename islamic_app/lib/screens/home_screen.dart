@@ -43,9 +43,12 @@ class _HomeScreenState extends State<HomeScreen> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.mosque), label: 'الصلاة'),
           NavigationDestination(icon: Icon(Icons.menu_book), label: 'الأذكار'),
-          NavigationDestination(icon: Icon(Icons.import_contacts), label: 'القرآن'),
-          NavigationDestination(icon: Icon(Icons.local_library), label: 'المكتبة'),
-          NavigationDestination(icon: Icon(Icons.emoji_events), label: 'التقدّم'),
+          NavigationDestination(
+              icon: Icon(Icons.import_contacts), label: 'القرآن'),
+          NavigationDestination(
+              icon: Icon(Icons.local_library), label: 'المكتبة'),
+          NavigationDestination(
+              icon: Icon(Icons.emoji_events), label: 'التقدّم'),
         ],
       ),
     );
@@ -73,7 +76,8 @@ class _PrayerHomeTab extends StatelessWidget {
         const SizedBox(height: 12),
         const HadithOfTheDayCard(),
         const SizedBox(height: 16),
-        Text('صلوات اليوم — ${DateFormat('EEEE، d MMMM', 'ar').format(DateTime.now())}',
+        Text(
+            'صلوات اليوم — ${DateFormat('EEEE، d MMMM', 'ar').format(DateTime.now())}',
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         ...FardPrayer.values.map((f) => _FardCard(prayer: f)),
@@ -95,14 +99,16 @@ class _LibraryTab extends StatelessWidget {
           icon: Icons.auto_stories,
           title: 'أحاديث المعاملات والأخلاق',
           subtitle: 'مكتبة أحاديث صحيحة في حسن الخلق والمعاملات، مع بحث وتصنيف',
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HadithScreen())),
+          onTap: () => Navigator.of(context)
+              .push(MaterialPageRoute(builder: (_) => const HadithScreen())),
         ),
         const SizedBox(height: 12),
         _LibraryTile(
           icon: Icons.groups,
           title: 'قصص الأنبياء والصحابة',
           subtitle: 'سِيَر موثقة للأنبياء والصحابة الكرام رضوان الله عليهم',
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StoriesScreen())),
+          onTap: () => Navigator.of(context)
+              .push(MaterialPageRoute(builder: (_) => const StoriesScreen())),
         ),
       ],
     );
@@ -114,18 +120,28 @@ class _LibraryTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
-  const _LibraryTile({required this.icon, required this.title, required this.subtitle, required this.onTap});
+  const _LibraryTile(
+      {required this.icon,
+      required this.title,
+      required this.subtitle,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Card(
       child: ListTile(
         contentPadding: const EdgeInsets.all(14),
-        leading: CircleAvatar(backgroundColor: AppColors.deepGreen, child: Icon(icon, color: AppColors.gold)),
-        title: Text(title, textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold)),
+        leading: CircleAvatar(
+            backgroundColor: AppColors.deepGreen,
+            child: Icon(icon, color: AppColors.gold)),
+        title: Text(title,
+            textAlign: TextAlign.right,
+            style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4),
-          child: Text(subtitle, textAlign: TextAlign.right, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+          child: Text(subtitle,
+              textAlign: TextAlign.right,
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
         ),
         trailing: const Icon(Icons.chevron_left),
         onTap: onTap,
@@ -148,10 +164,14 @@ class _WeeklyPointsCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            const Text('نقاطك هذا الأسبوع', style: const TextStyle(color: AppColors.lightGold, fontSize: 14)),
+            const Text('نقاطك هذا الأسبوع',
+                style: TextStyle(color: AppColors.lightGold, fontSize: 14)),
             const SizedBox(height: 4),
             Text('${pointsProv.weeklyPoints} / ${pointsProv.weeklyTarget}',
-                style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
@@ -183,7 +203,8 @@ class _FardCard extends StatelessWidget {
     final prov = context.watch<PrayerProvider>();
     final unlocked = prov.isFardUnlocked(prayer);
     final checked = prov.fardChecked(prayer);
-    final relatedSunnahs = SunnahPrayer.values.where((s) => s.relatedFard == prayer).toList();
+    final relatedSunnahs =
+        SunnahPrayer.values.where((s) => s.relatedFard == prayer).toList();
 
     return Card(
       child: Padding(
@@ -201,17 +222,28 @@ class _FardCard extends StatelessWidget {
                 Expanded(
                   child: Text(prayer.arabicName,
                       textAlign: TextAlign.right,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(color: unlocked ? null : Colors.grey)),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(color: unlocked ? null : Colors.grey)),
                 ),
-                if (!unlocked) const Icon(Icons.lock_clock, size: 18, color: Colors.grey),
+                if (!unlocked)
+                  const Icon(Icons.lock_clock, size: 18, color: Colors.grey),
               ],
             ),
             if (relatedSunnahs.isNotEmpty) ...[
               const Divider(height: 12),
               ...relatedSunnahs.map((s) => Row(
                     children: [
-                      Checkbox(value: prov.sunnahChecked(s), onChanged: unlocked ? (_) => prov.toggleSunnah(s) : null, activeColor: AppColors.gold),
-                      Expanded(child: Text(s.arabicName, textAlign: TextAlign.right, style: const TextStyle(fontSize: 13))),
+                      Checkbox(
+                          value: prov.sunnahChecked(s),
+                          onChanged:
+                              unlocked ? (_) => prov.toggleSunnah(s) : null,
+                          activeColor: AppColors.gold),
+                      Expanded(
+                          child: Text(s.arabicName,
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(fontSize: 13))),
                     ],
                   )),
             ]
