@@ -60,7 +60,7 @@ class AppTheme {
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: AppColors.gold,
       ),
-      navigationBarTheme: NavigationBarThemeData(
+      navigationBarTheme: const NavigationBarThemeData(
         height: 72,
         backgroundColor: Colors.white,
         indicatorColor: AppColors.warmSand,

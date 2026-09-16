@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'providers/azkar_provider.dart';
 import 'providers/points_provider.dart';
@@ -14,6 +15,7 @@ import 'screens/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('ar');
   await StorageService.init();
   try {
     await NotificationService.init().timeout(const Duration(seconds: 5));
