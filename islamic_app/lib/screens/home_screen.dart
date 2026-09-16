@@ -70,11 +70,17 @@ class _PrayerHomeTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
+        if (prayerProv.locationNotice != null) ...[
+          _LocationPermissionNotice(prayerProv: prayerProv),
+          const SizedBox(height: 12),
+        ],
         const StreakLanternCard(),
         const SizedBox(height: 12),
         _WeeklyPointsCard(pointsProv: pointsProv),
         const SizedBox(height: 12),
         const HadithOfTheDayCard(),
+        const SizedBox(height: 16),
+        _NextPrayerCard(prayerProv: prayerProv),
         const SizedBox(height: 16),
         Text(
             'صلوات اليوم — ${DateFormat('EEEE، d MMMM', 'ar').format(DateTime.now())}',
@@ -82,6 +88,48 @@ class _PrayerHomeTab extends StatelessWidget {
         const SizedBox(height: 8),
         ...FardPrayer.values.map((f) => _FardCard(prayer: f)),
       ],
+    );
+  }
+}
+
+class _LocationPermissionNotice extends StatelessWidget {
+  final PrayerProvider prayerProv;
+
+  const _LocationPermissionNotice({required this.prayerProv});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: AppColors.lightGold.withValues(alpha: 0.22),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            const Icon(Icons.location_on_outlined, color: AppColors.deepGreen),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                prayerProv.locationNotice!,
+                textAlign: TextAlign.right,
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
+            const SizedBox(width: 8),
+            prayerProv.requestingLocationPermission
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : TextButton(
+                    onPressed: prayerProv.requestLocationPermission,
+                    child: Text(prayerProv.locationPermissionPermanentlyDenied
+                        ? 'فتح الإعدادات'
+                        : 'السماح'),
+                  ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -203,10 +251,13 @@ class _FardCard extends StatelessWidget {
     final prov = context.watch<PrayerProvider>();
     final unlocked = prov.isFardUnlocked(prayer);
     final checked = prov.fardChecked(prayer);
+    final prayerTime = prov.timeFor(prayer);
     final relatedSunnahs =
         SunnahPrayer.values.where((s) => s.relatedFard == prayer).toList();
+    final visual = _PrayerVisual.forPrayer(prayer);
 
     return Card(
+      clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -220,15 +271,45 @@ class _FardCard extends StatelessWidget {
                   activeColor: AppColors.success,
                 ),
                 Expanded(
-                  child: Text(prayer.arabicName,
-                      textAlign: TextAlign.right,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(color: unlocked ? null : Colors.grey)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(prayer.arabicName,
+                          textAlign: TextAlign.right,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(color: unlocked ? null : Colors.grey)),
+                      const SizedBox(height: 3),
+                      Text(
+                        prayerTime == null
+                            ? 'الوقت غير متاح'
+                            : DateFormat.jm('ar').format(prayerTime),
+                        style: TextStyle(
+                          color: visual.accent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: visual.background,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Icon(visual.icon, color: visual.accent, size: 26),
+                  ),
                 ),
                 if (!unlocked)
-                  const Icon(Icons.lock_clock, size: 18, color: Colors.grey),
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: Icon(Icons.lock_clock, size: 18, color: Colors.grey),
+                  ),
               ],
             ),
             if (relatedSunnahs.isNotEmpty) ...[
@@ -251,5 +332,96 @@ class _FardCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _NextPrayerCard extends StatelessWidget {
+  final PrayerProvider prayerProv;
+  const _NextPrayerCard({required this.prayerProv});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final upcoming = FardPrayer.values
+        .map((prayer) => (prayer: prayer, time: prayerProv.timeFor(prayer)))
+        .where((entry) => entry.time != null && entry.time!.isAfter(now))
+        .toList();
+    final next = upcoming.isEmpty ? null : upcoming.first;
+    final visual = next == null
+        ? _PrayerVisual.forPrayer(FardPrayer.fajr)
+        : _PrayerVisual.forPrayer(next.prayer);
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [visual.background, AppColors.deepGreen],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.45)),
+      ),
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        children: [
+          Icon(visual.icon, color: AppColors.lightGold, size: 42),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const Text('الصلاة القادمة',
+                    style: TextStyle(color: AppColors.lightGold, fontSize: 13)),
+                const SizedBox(height: 4),
+                Text(
+                  next == null ? 'الفجر غدًا' : next.prayer.arabicName,
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  next?.time == null
+                      ? 'يتم تحديث المواقيت يوميًا'
+                      : DateFormat.jm('ar').format(next!.time!),
+                  style: const TextStyle(color: Colors.white70, fontSize: 15),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PrayerVisual {
+  final IconData icon;
+  final Color accent;
+  final Color background;
+
+  const _PrayerVisual(this.icon, this.accent, this.background);
+
+  static _PrayerVisual forPrayer(FardPrayer prayer) {
+    switch (prayer) {
+      case FardPrayer.fajr:
+        return const _PrayerVisual(
+            Icons.wb_twilight, Color(0xFFB47739), Color(0xFFFFE7C2));
+      case FardPrayer.dhuhr:
+        return const _PrayerVisual(
+            Icons.wb_sunny_outlined, Color(0xFFB78916), Color(0xFFFFF2BC));
+      case FardPrayer.asr:
+        return const _PrayerVisual(
+            Icons.sunny, Color(0xFFB9692F), Color(0xFFFFDFC5));
+      case FardPrayer.maghrib:
+        return const _PrayerVisual(
+            Icons.nights_stay_outlined, Color(0xFF7E5B85), Color(0xFFE8DDF0));
+      case FardPrayer.isha:
+        return const _PrayerVisual(
+            Icons.nightlight_round, Color(0xFF37647A), Color(0xFFDCECF0));
+    }
   }
 }

@@ -16,10 +16,17 @@ class PrayerProvider extends ChangeNotifier {
   PrayerTimes? _times;
   late DailyPrayerLog _log;
   bool _loading = true;
+  bool _requestingLocationPermission = false;
+  String? _locationNotice;
+  bool _locationPermissionPermanentlyDenied = false;
 
   PrayerTimes? get times => _times;
   DailyPrayerLog get log => _log;
   bool get loading => _loading;
+  String? get locationNotice => _locationNotice;
+  bool get requestingLocationPermission => _requestingLocationPermission;
+  bool get locationPermissionPermanentlyDenied =>
+      _locationPermissionPermanentlyDenied;
 
   String get _todayKey => DateFormat('yyyy-MM-dd').format(DateTime.now());
 
@@ -37,9 +44,28 @@ class PrayerProvider extends ChangeNotifier {
     if (lat == null || lng == null) {
       try {
         final permission = await Geolocator.checkPermission();
-        if (permission == LocationPermission.denied) {
-          await Geolocator.requestPermission();
+        if (permission == LocationPermission.deniedForever) {
+          _setLocationNotice(permanentlyDenied: true);
+        } else if (permission == LocationPermission.denied) {
+          final requestedPermission = await Geolocator.requestPermission();
+          if (requestedPermission == LocationPermission.deniedForever) {
+            _setLocationNotice(permanentlyDenied: true);
+          } else if (requestedPermission == LocationPermission.denied) {
+            _setLocationNotice();
+          }
         }
+
+        final currentPermission = await Geolocator.checkPermission();
+        if (currentPermission == LocationPermission.denied ||
+            currentPermission == LocationPermission.deniedForever) {
+          throw StateError('Location permission was not granted');
+        }
+
+        if (!await Geolocator.isLocationServiceEnabled()) {
+          _locationNotice = 'فعّل خدمة الموقع لحساب المواقيت حسب مكانك.';
+          throw StateError('Location service is disabled');
+        }
+
         final pos = await Geolocator.getCurrentPosition();
         lat = pos.latitude;
         lng = pos.longitude;
@@ -47,11 +73,67 @@ class PrayerProvider extends ChangeNotifier {
       } catch (_) {
         lat = 21.4225;
         lng = 39.8262;
+        _locationNotice ??=
+            'تم استخدام مواقيت مكة مؤقتًا. اسمح بالوصول إلى موقعك لحساب المواقيت بدقة.';
       }
     }
 
     _times = NotificationService.calculateToday(latitude: lat, longitude: lng);
-    await NotificationService.scheduleDailyPrayerNotifications(_times!);
+    try {
+      await NotificationService.scheduleDailyPrayerNotifications(_times!);
+    } catch (error, stackTrace) {
+      debugPrint(
+          'Failed to schedule prayer notifications: $error\n$stackTrace');
+    }
+  }
+
+  Future<void> requestLocationPermission() async {
+    if (_requestingLocationPermission) return;
+
+    _requestingLocationPermission = true;
+    notifyListeners();
+    try {
+      final permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.deniedForever) {
+        _locationPermissionPermanentlyDenied = true;
+        _locationNotice =
+            'تم رفض الموقع نهائيًا. افتح إعدادات التطبيق واسمح بالوصول إلى الموقع.';
+        await Geolocator.openAppSettings();
+        return;
+      }
+
+      final requestedPermission = permission == LocationPermission.denied
+          ? await Geolocator.requestPermission()
+          : permission;
+      if (requestedPermission == LocationPermission.deniedForever) {
+        _locationPermissionPermanentlyDenied = true;
+        _locationNotice =
+            'تم رفض الموقع نهائيًا. افتح إعدادات التطبيق واسمح بالوصول إلى الموقع.';
+        await Geolocator.openAppSettings();
+        return;
+      }
+      if (requestedPermission == LocationPermission.denied) {
+        _setLocationNotice();
+        return;
+      }
+
+      _locationNotice = null;
+      _locationPermissionPermanentlyDenied = false;
+      await _resolveLocationAndTimes();
+    } catch (error, stackTrace) {
+      debugPrint('Failed to request location permission: $error\n$stackTrace');
+      _setLocationNotice();
+    } finally {
+      _requestingLocationPermission = false;
+      notifyListeners();
+    }
+  }
+
+  void _setLocationNotice({bool permanentlyDenied = false}) {
+    _locationPermissionPermanentlyDenied = permanentlyDenied;
+    _locationNotice = permanentlyDenied
+        ? 'تم رفض الموقع نهائيًا. اسمح بالوصول إليه من إعدادات التطبيق.'
+        : 'اسمح بالوصول إلى موقعك لحساب مواقيت الصلاة بدقة.';
   }
 
   bool isFardUnlocked(FardPrayer prayer) {
@@ -59,6 +141,11 @@ class PrayerProvider extends ChangeNotifier {
     final DateTime? entryTime = _timeFor(prayer);
     if (entryTime == null) return false;
     return DateTime.now().isAfter(entryTime);
+  }
+
+  DateTime? timeFor(FardPrayer prayer) {
+    if (_times == null) return null;
+    return _timeFor(prayer);
   }
 
   DateTime? _timeFor(FardPrayer p) {
@@ -83,7 +170,8 @@ class PrayerProvider extends ChangeNotifier {
     _log.fardStatus[key] = !wasChecked;
     await StorageService.saveLog(_log);
 
-    final delta = !wasChecked ? PointsConfig.fardPoints : -PointsConfig.fardPoints;
+    final delta =
+        !wasChecked ? PointsConfig.fardPoints : -PointsConfig.fardPoints;
     await pointsProvider.addPoints(delta);
     notifyListeners();
   }
@@ -95,7 +183,8 @@ class PrayerProvider extends ChangeNotifier {
     _log.sunnahStatus[key] = !wasChecked;
     await StorageService.saveLog(_log);
 
-    final delta = !wasChecked ? PointsConfig.sunnahPoints : -PointsConfig.sunnahPoints;
+    final delta =
+        !wasChecked ? PointsConfig.sunnahPoints : -PointsConfig.sunnahPoints;
     await pointsProvider.addPoints(delta);
     notifyListeners();
   }
