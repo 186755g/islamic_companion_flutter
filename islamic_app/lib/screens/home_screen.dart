@@ -7,6 +7,7 @@ import '../providers/prayer_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/streak_lantern_card.dart';
 import '../widgets/hadith_of_the_day_card.dart';
+import '../widgets/islamic_ornament.dart';
 import 'azkar_screen.dart';
 import 'progress_screen.dart';
 import 'quran_screen.dart';
@@ -80,25 +81,34 @@ class _PrayerHomeTab extends StatelessWidget {
     }
 
     return ListView(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.zero,
       children: [
-        if (prayerProv.locationNotice != null) ...[
-          _LocationPermissionNotice(prayerProv: prayerProv),
-          const SizedBox(height: 12),
-        ],
-        const StreakLanternCard(),
+        const IslamicOrnamentDivider(),
         const SizedBox(height: 12),
-        _WeeklyPointsCard(pointsProv: pointsProv),
-        const SizedBox(height: 12),
-        const HadithOfTheDayCard(),
-        const SizedBox(height: 16),
-        _NextPrayerCard(prayerProv: prayerProv),
-        const SizedBox(height: 16),
-        Text(
-            'صلوات اليوم — ${DateFormat('EEEE، d MMMM', 'ar').format(DateTime.now())}',
-            style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        ...FardPrayer.values.map((f) => _FardCard(prayer: f)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Column(
+            children: [
+              if (prayerProv.locationNotice != null) ...[
+                _LocationPermissionNotice(prayerProv: prayerProv),
+                const SizedBox(height: 12),
+              ],
+              const StreakLanternCard(),
+              const SizedBox(height: 12),
+              _WeeklyPointsCard(pointsProv: pointsProv),
+              const SizedBox(height: 12),
+              const HadithOfTheDayCard(),
+              const SizedBox(height: 16),
+              _NextPrayerCard(prayerProv: prayerProv),
+              const SizedBox(height: 16),
+              Text(
+                  'صلوات اليوم — ${DateFormat('EEEE، d MMMM', 'ar').format(DateTime.now())}',
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              ...FardPrayer.values.map((f) => _FardCard(prayer: f)),
+            ],
+          ),
+        ),
       ],
     );
   }

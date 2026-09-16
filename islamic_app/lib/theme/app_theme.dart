@@ -9,6 +9,8 @@ class AppColors {
   static const Color ivory = Color(0xFFFBF7EF);
   static const Color textDark = Color(0xFF1C2A22);
   static const Color success = Color(0xFF3E8E5A);
+  static const Color softGreen = Color(0xFFE7F0E8);
+  static const Color warmSand = Color(0xFFF2E6C9);
 }
 
 class AppTheme {
@@ -51,15 +53,31 @@ class AppTheme {
           backgroundColor: AppColors.deepGreen,
           foregroundColor: AppColors.ivory,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: AppColors.gold,
       ),
+      navigationBarTheme: NavigationBarThemeData(
+        height: 72,
+        backgroundColor: Colors.white,
+        indicatorColor: AppColors.warmSand,
+        labelTextStyle: WidgetStatePropertyAll(
+          TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+      ),
+      dividerTheme: DividerThemeData(
+        color: AppColors.gold.withValues(alpha: 0.2),
+        thickness: 1,
+        space: 1,
+      ),
       textTheme: const TextTheme(
-        headlineSmall: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark),
-        titleMedium: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textDark),
+        headlineSmall:
+            TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark),
+        titleMedium:
+            TextStyle(fontWeight: FontWeight.w600, color: AppColors.textDark),
         bodyMedium: TextStyle(color: AppColors.textDark, height: 1.6),
       ),
     );

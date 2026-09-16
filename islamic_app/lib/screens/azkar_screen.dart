@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/zikr_model.dart';
 import '../providers/azkar_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/islamic_ornament.dart';
 
 class AzkarScreen extends StatefulWidget {
   const AzkarScreen({super.key});
@@ -24,6 +25,7 @@ class _AzkarScreenState extends State<AzkarScreen>
   Widget build(BuildContext context) {
     return Column(
       children: [
+        const IslamicOrnamentDivider(height: 24),
         Container(
           color: AppColors.deepGreen,
           child: TabBar(
