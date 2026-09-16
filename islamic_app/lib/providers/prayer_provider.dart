@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:adhan_dart/adhan_dart.dart';
 import 'package:geolocator/geolocator.dart';
@@ -82,9 +84,12 @@ class PrayerProvider extends ChangeNotifier {
           throw StateError('Location service is disabled');
         }
 
+        const locationSettings = LocationSettings(
+          accuracy: LocationAccuracy.low,
+          timeLimit: Duration(seconds: 8),
+        );
         final pos = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.low,
-          timeLimit: const Duration(seconds: 8),
+          locationSettings: locationSettings,
         ).timeout(const Duration(seconds: 10));
         lat = pos.latitude;
         lng = pos.longitude;
@@ -98,11 +103,16 @@ class PrayerProvider extends ChangeNotifier {
     }
 
     _times = NotificationService.calculateToday(
-      latitude: lat ?? 21.4225,
-      longitude: lng ?? 39.8262,
+      latitude: lat,
+      longitude: lng,
     );
+    unawaited(_scheduleNotificationsSafely(_times!));
+  }
+
+  Future<void> _scheduleNotificationsSafely(PrayerTimes times) async {
     try {
-      await NotificationService.scheduleDailyPrayerNotifications(_times!);
+      await NotificationService.scheduleDailyPrayerNotifications(times)
+          .timeout(const Duration(seconds: 5));
     } catch (error, stackTrace) {
       debugPrint(
           'Failed to schedule prayer notifications: $error\n$stackTrace');
