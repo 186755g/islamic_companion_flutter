@@ -97,36 +97,128 @@ class _LocationPermissionNotice extends StatelessWidget {
 
   const _LocationPermissionNotice({required this.prayerProv});
 
+  void _showManualLocationDialog(BuildContext context) {
+    final latController = TextEditingController(text: '21.4225');
+    final lngController = TextEditingController(text: '39.8262');
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('تحديد الموقع يدويًا'),
+          content: SizedBox(
+            width: 300,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: latController,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  textAlign: TextAlign.right,
+                  decoration: const InputDecoration(
+                    labelText: 'خط العرض',
+                    hintText: 'مثال: 21.4225',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: lngController,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  textAlign: TextAlign.right,
+                  decoration: const InputDecoration(
+                    labelText: 'خط الطول',
+                    hintText: 'مثال: 39.8262',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final lat = double.tryParse(latController.text);
+                final lng = double.tryParse(lngController.text);
+                if (lat == null || lng == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('أدخل خط العرض وخط الطول بشكل صحيح')),
+                  );
+                  return;
+                }
+
+                prayerProv.setManualLocation(lat, lng);
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('تطبيق'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
       color: AppColors.lightGold.withValues(alpha: 0.22),
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            const Icon(Icons.location_on_outlined, color: AppColors.deepGreen),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                prayerProv.locationNotice!,
-                textAlign: TextAlign.right,
-                style: const TextStyle(fontSize: 13),
-              ),
+            Row(
+              children: [
+                const Icon(Icons.location_on_outlined,
+                    color: AppColors.deepGreen),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    prayerProv.locationNotice!,
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            prayerProv.requestingLocationPermission
-                ? const SizedBox(
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.end,
+              children: [
+                if (prayerProv.requestingLocationPermission)
+                  const SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : TextButton(
-                    onPressed: prayerProv.requestLocationPermission,
-                    child: Text(prayerProv.locationPermissionPermanentlyDenied
-                        ? 'فتح الإعدادات'
-                        : 'السماح'),
+                else ...[
+                  TextButton.icon(
+                    onPressed: prayerProv.useMakkahAsDefault,
+                    icon: const Icon(Icons.location_city_outlined),
+                    label: const Text('استخدام مكة'),
                   ),
+                  TextButton.icon(
+                    onPressed: prayerProv.requestLocationPermission,
+                    icon: const Icon(Icons.my_location),
+                    label: Text(prayerProv.locationPermissionPermanentlyDenied
+                        ? 'فتح الإعدادات'
+                        : 'السماح بموقع الجهاز'),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => _showManualLocationDialog(context),
+                    icon: const Icon(Icons.gps_fixed),
+                    label: const Text('تحديد يدوي'),
+                  ),
+                ],
+              ],
+            ),
           ],
         ),
       ),

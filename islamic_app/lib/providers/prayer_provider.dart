@@ -31,10 +31,21 @@ class PrayerProvider extends ChangeNotifier {
   String get _todayKey => DateFormat('yyyy-MM-dd').format(DateTime.now());
 
   Future<void> _init() async {
-    _log = StorageService.getLogForDate(_todayKey);
-    await _resolveLocationAndTimes();
-    _loading = false;
-    notifyListeners();
+    try {
+      _log = StorageService.getLogForDate(_todayKey);
+      await _resolveLocationAndTimes();
+    } catch (error, stackTrace) {
+      debugPrint('PrayerProvider init failed: $error\n$stackTrace');
+      _times ??= NotificationService.calculateToday(
+        latitude: 21.4225,
+        longitude: 39.8262,
+      );
+      _locationNotice ??=
+          'تم استخدام مواقيت مكة مؤقتًا بسبب مشكلة في تحديد الموقع.';
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> _resolveLocationAndTimes() async {
@@ -43,11 +54,13 @@ class PrayerProvider extends ChangeNotifier {
 
     if (lat == null || lng == null) {
       try {
-        final permission = await Geolocator.checkPermission();
+        final permission = await Geolocator.checkPermission()
+            .timeout(const Duration(seconds: 8));
         if (permission == LocationPermission.deniedForever) {
           _setLocationNotice(permanentlyDenied: true);
         } else if (permission == LocationPermission.denied) {
-          final requestedPermission = await Geolocator.requestPermission();
+          final requestedPermission = await Geolocator.requestPermission()
+              .timeout(const Duration(seconds: 8));
           if (requestedPermission == LocationPermission.deniedForever) {
             _setLocationNotice(permanentlyDenied: true);
           } else if (requestedPermission == LocationPermission.denied) {
@@ -55,18 +68,24 @@ class PrayerProvider extends ChangeNotifier {
           }
         }
 
-        final currentPermission = await Geolocator.checkPermission();
+        final currentPermission = await Geolocator.checkPermission()
+            .timeout(const Duration(seconds: 8));
         if (currentPermission == LocationPermission.denied ||
             currentPermission == LocationPermission.deniedForever) {
           throw StateError('Location permission was not granted');
         }
 
-        if (!await Geolocator.isLocationServiceEnabled()) {
+        final isEnabled = await Geolocator.isLocationServiceEnabled()
+            .timeout(const Duration(seconds: 8));
+        if (!isEnabled) {
           _locationNotice = 'فعّل خدمة الموقع لحساب المواقيت حسب مكانك.';
           throw StateError('Location service is disabled');
         }
 
-        final pos = await Geolocator.getCurrentPosition();
+        final pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.low,
+          timeLimit: const Duration(seconds: 8),
+        ).timeout(const Duration(seconds: 10));
         lat = pos.latitude;
         lng = pos.longitude;
         await StorageService.saveLocation(lat, lng);
@@ -78,7 +97,10 @@ class PrayerProvider extends ChangeNotifier {
       }
     }
 
-    _times = NotificationService.calculateToday(latitude: lat, longitude: lng);
+    _times = NotificationService.calculateToday(
+      latitude: lat ?? 21.4225,
+      longitude: lng ?? 39.8262,
+    );
     try {
       await NotificationService.scheduleDailyPrayerNotifications(_times!);
     } catch (error, stackTrace) {
@@ -127,6 +149,44 @@ class PrayerProvider extends ChangeNotifier {
       _requestingLocationPermission = false;
       notifyListeners();
     }
+  }
+
+  Future<void> useMakkahAsDefault() async {
+    const makkahLat = 21.4225;
+    const makkahLng = 39.8262;
+    await StorageService.saveLocation(makkahLat, makkahLng);
+    _locationNotice = null;
+    _locationPermissionPermanentlyDenied = false;
+    _times = NotificationService.calculateToday(
+      latitude: makkahLat,
+      longitude: makkahLng,
+    );
+    try {
+      await NotificationService.scheduleDailyPrayerNotifications(_times!);
+    } catch (error, stackTrace) {
+      debugPrint(
+          'Failed to schedule prayer notifications: $error\n$stackTrace');
+    }
+    notifyListeners();
+  }
+
+  Future<void> setManualLocation(double latitude, double longitude) async {
+    final safeLat = latitude.clamp(-90.0, 90.0);
+    final safeLng = longitude.clamp(-180.0, 180.0);
+    await StorageService.saveLocation(safeLat, safeLng);
+    _locationNotice = null;
+    _locationPermissionPermanentlyDenied = false;
+    _times = NotificationService.calculateToday(
+      latitude: safeLat,
+      longitude: safeLng,
+    );
+    try {
+      await NotificationService.scheduleDailyPrayerNotifications(_times!);
+    } catch (error, stackTrace) {
+      debugPrint(
+          'Failed to schedule prayer notifications: $error\n$stackTrace');
+    }
+    notifyListeners();
   }
 
   void _setLocationNotice({bool permanentlyDenied = false}) {
