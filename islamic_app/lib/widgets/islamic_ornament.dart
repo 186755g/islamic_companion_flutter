@@ -7,8 +7,8 @@ class IslamicOrnamentDivider extends StatelessWidget {
 
   const IslamicOrnamentDivider({
     super.key,
-    this.height = 28,
-    this.backgroundColor = AppColors.deepGreen,
+    this.height = 24,
+    this.backgroundColor = AppColors.softGreen,
   });
 
   @override
@@ -19,7 +19,7 @@ class IslamicOrnamentDivider extends StatelessWidget {
       child: CustomPaint(
         painter: _IslamicOrnamentPainter(
           backgroundColor: backgroundColor,
-          accentColor: AppColors.gold,
+          accentColor: AppColors.deepGreen,
           secondaryColor: AppColors.lightGold,
         ),
       ),
@@ -43,27 +43,27 @@ class _IslamicOrnamentPainter extends CustomPainter {
     canvas.drawRect(Offset.zero & size, Paint()..color = backgroundColor);
 
     final linePaint = Paint()
-      ..color = accentColor.withValues(alpha: 0.78)
+      ..color = accentColor.withValues(alpha: 0.18)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.1;
-    final fillPaint = Paint()..color = secondaryColor.withValues(alpha: 0.25);
+      ..strokeWidth = 0.9;
+    final fillPaint = Paint()..color = secondaryColor.withValues(alpha: 0.14);
     final centerY = size.height / 2;
-    const step = 32.0;
+    const step = 40.0;
 
     for (double centerX = 16; centerX < size.width + step; centerX += step) {
       final diamond = Path()
-        ..moveTo(centerX, centerY - 9)
-        ..lineTo(centerX + 9, centerY)
-        ..lineTo(centerX, centerY + 9)
-        ..lineTo(centerX - 9, centerY)
+        ..moveTo(centerX, centerY - 7)
+        ..lineTo(centerX + 7, centerY)
+        ..lineTo(centerX, centerY + 7)
+        ..lineTo(centerX - 7, centerY)
         ..close();
       canvas.drawPath(diamond, linePaint);
 
       final innerDiamond = Path()
-        ..moveTo(centerX, centerY - 4)
-        ..lineTo(centerX + 4, centerY)
-        ..lineTo(centerX, centerY + 4)
-        ..lineTo(centerX - 4, centerY)
+        ..moveTo(centerX, centerY - 3)
+        ..lineTo(centerX + 3, centerY)
+        ..lineTo(centerX, centerY + 3)
+        ..lineTo(centerX - 3, centerY)
         ..close();
       canvas.drawPath(innerDiamond, fillPaint);
     }

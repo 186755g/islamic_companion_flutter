@@ -41,10 +41,10 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: Colors.white,
         elevation: 1.5,
-        shadowColor: AppColors.deepGreen.withValues(alpha: 0.15),
+        shadowColor: AppColors.deepGreen.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: AppColors.gold.withValues(alpha: 0.25)),
+          side: BorderSide(color: AppColors.gold.withValues(alpha: 0.18)),
         ),
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       ),
