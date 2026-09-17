@@ -142,6 +142,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               : 'تم حفظ الإعدادات وإيقاف صوت الأذان'),
         ),
       );
+    } catch (error, stackTrace) {
+      debugPrint('Failed to save adhan settings: $error\n$stackTrace');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'تعذر حفظ إعدادات الأذان. تحقق من صلاحيات الإشعارات وحاول مجددًا.'),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _savingAdhanSettings = false);
     }

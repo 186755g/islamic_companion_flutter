@@ -268,34 +268,267 @@ class _PrayerHomeTab extends StatelessWidget {
       padding: EdgeInsets.zero,
       children: [
         const IslamicOrnamentDivider(),
-        const SizedBox(height: 12),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
           child: Column(
             children: [
+              _PrayerDashboardHero(prayerProv: prayerProv),
+              const SizedBox(height: 14),
               if (prayerProv.locationNotice != null) ...[
                 _LocationPermissionNotice(prayerProv: prayerProv),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
               ],
+              _NextPrayerCard(prayerProv: prayerProv),
+              const SizedBox(height: 14),
+              _PrayerTimeline(prayerProv: prayerProv),
+              const SizedBox(height: 22),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  'صلوات اليوم',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  DateFormat('EEEE، d MMMM', 'ar').format(DateTime.now()),
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                ),
+              ),
+              const SizedBox(height: 10),
+              ...FardPrayer.values.map((f) => _FardCard(prayer: f)),
+              const SizedBox(height: 8),
               const StreakLanternCard(),
               const SizedBox(height: 12),
               _WeeklyPointsCard(pointsProv: pointsProv),
               const SizedBox(height: 12),
               const HadithOfTheDayCard(),
-              const SizedBox(height: 16),
-              _NextPrayerCard(prayerProv: prayerProv),
-              const SizedBox(height: 16),
-              Text(
-                  'صلوات اليوم — ${DateFormat('EEEE، d MMMM', 'ar').format(DateTime.now())}',
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              ...FardPrayer.values.map((f) => _FardCard(prayer: f)),
             ],
           ),
         ),
       ],
     );
   }
+}
+
+class _PrayerDashboardHero extends StatelessWidget {
+  final PrayerProvider prayerProv;
+
+  const _PrayerDashboardHero({required this.prayerProv});
+
+  @override
+  Widget build(BuildContext context) {
+    final completed = FardPrayer.values.where(prayerProv.fardChecked).length;
+    final progress = completed / FardPrayer.values.length;
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppColors.deepGreen, Color(0xFF176047)],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.deepGreen.withValues(alpha: .2),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _DashboardPattern(
+                color: AppColors.lightGold.withValues(alpha: .13),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: .12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.mosque_rounded,
+                          color: AppColors.lightGold, size: 27),
+                    ),
+                    const Spacer(),
+                    const Text(
+                      'لوحة الصلاة',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                const Text(
+                  'بارك الله في يومك',
+                  style: TextStyle(color: AppColors.lightGold, fontSize: 13),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$completed من ${FardPrayer.values.length} صلوات مكتملة',
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 8,
+                    backgroundColor: Colors.white.withValues(alpha: .16),
+                    valueColor:
+                        const AlwaysStoppedAnimation(AppColors.lightGold),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  progress == 1
+                      ? 'أتممت صلوات اليوم، تقبّل الله'
+                      : 'استمر، كل صلاة نور',
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PrayerTimeline extends StatelessWidget {
+  final PrayerProvider prayerProv;
+
+  const _PrayerTimeline({required this.prayerProv});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.swipe_rounded,
+                    size: 16, color: Colors.grey.shade500),
+                const Spacer(),
+                const Text(
+                  'مواقيت اليوم',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              height: 92,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                reverse: true,
+                itemCount: FardPrayer.values.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final prayer = FardPrayer.values[index];
+                  final visual = _PrayerVisual.forPrayer(prayer);
+                  final checked = prayerProv.fardChecked(prayer);
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 260),
+                    width: 74,
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    decoration: BoxDecoration(
+                      color: checked
+                          ? visual.accent.withValues(alpha: .16)
+                          : visual.background.withValues(alpha: .65),
+                      borderRadius: BorderRadius.circular(17),
+                      border: Border.all(
+                        color: checked
+                            ? visual.accent.withValues(alpha: .5)
+                            : visual.accent.withValues(alpha: .18),
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Icon(checked ? Icons.check_circle : visual.icon,
+                            color: checked ? AppColors.success : visual.accent,
+                            size: 22),
+                        Text(prayer.arabicName,
+                            style: const TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.bold)),
+                        Text(
+                          prayerProv.timeFor(prayer) == null
+                              ? '--:--'
+                              : DateFormat.jm('ar')
+                                  .format(prayerProv.timeFor(prayer)!),
+                          style: TextStyle(
+                              color: visual.accent,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DashboardPattern extends CustomPainter {
+  final Color color;
+
+  const _DashboardPattern({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1;
+    final center = Offset(size.width * .12, size.height * .15);
+    for (var radius = 22.0; radius < 130; radius += 22) {
+      canvas.drawCircle(center, radius, paint);
+    }
+    final path = Path();
+    for (var x = -size.height; x < size.width; x += 30) {
+      path.moveTo(x, size.height);
+      path.lineTo(x + size.height, 0);
+    }
+    canvas.drawPath(path, paint..strokeWidth = .6);
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashboardPattern oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 class _LocationPermissionNotice extends StatelessWidget {

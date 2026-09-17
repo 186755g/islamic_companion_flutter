@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:adhan_dart/adhan_dart.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -19,6 +20,8 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
   static bool _exactAlarmsAllowed = false;
+
+  static bool get isInitialized => _initialized;
 
   static const _fajrChannelId = 'prayer_times_fajr_v2';
   static const _regularChannelId = 'prayer_times_regular_v2';
@@ -194,7 +197,9 @@ class NotificationService {
 
   static Future<void> scheduleDailyPrayerNotifications(
       PrayerTimes times) async {
-    if (!_initialized) return;
+    if (!_initialized) {
+      throw StateError('لم يتم تهيئة خدمة إشعارات الأذان بعد');
+    }
     await _plugin.cancelAll();
 
     final entries = <FardPrayer, DateTime>{
@@ -241,9 +246,13 @@ class NotificationService {
     required FardPrayer prayer,
     required bool isAdhan,
   }) async {
-    final customPath = prayer == FardPrayer.fajr
+    final selectedCustomPath = prayer == FardPrayer.fajr
         ? StorageService.getFajrAdhanPath()
         : StorageService.getRegularAdhanPath();
+    final customPath = selectedCustomPath != null &&
+            await File(selectedCustomPath).exists()
+        ? selectedCustomPath
+        : null;
     final sound = isAdhan && StorageService.getAdhanEnabled()
         ? customPath == null
             ? RawResourceAndroidNotificationSound(

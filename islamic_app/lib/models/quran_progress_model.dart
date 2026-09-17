@@ -97,5 +97,5 @@ class KhatmahPlan {
         totalPages: json['totalPages'] ?? defaultTotalPages,
       );
 
-  static List<int> predefinedDurations() => [30, 60, 90];
+  static List<int> predefinedDurations() => [7, 14, 30, 40, 60, 90, 120, 180];
 }
