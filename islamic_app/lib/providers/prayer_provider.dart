@@ -110,10 +110,14 @@ class PrayerProvider extends ChangeNotifier {
       }
     }
 
-    _times = NotificationService.calculateToday(
+    _times = await NotificationService.calculateTodayFromApi(
       latitude: lat,
       longitude: lng,
-    );
+    ) ??
+        NotificationService.calculateToday(
+          latitude: lat,
+          longitude: lng,
+        );
     unawaited(_scheduleNotificationsSafely(_times!));
   }
 
@@ -176,10 +180,14 @@ class PrayerProvider extends ChangeNotifier {
     await StorageService.saveLocation(makkahLat, makkahLng);
     _locationNotice = null;
     _locationPermissionPermanentlyDenied = false;
-    _times = NotificationService.calculateToday(
+    _times = await NotificationService.calculateTodayFromApi(
       latitude: makkahLat,
       longitude: makkahLng,
-    );
+    ) ??
+        NotificationService.calculateToday(
+          latitude: makkahLat,
+          longitude: makkahLng,
+        );
     try {
       await NotificationService.scheduleDailyPrayerNotifications(_times!);
     } catch (error, stackTrace) {
@@ -196,10 +204,14 @@ class PrayerProvider extends ChangeNotifier {
     await StorageService.saveLocation(safeLat, safeLng);
     _locationNotice = null;
     _locationPermissionPermanentlyDenied = false;
-    _times = NotificationService.calculateToday(
+    _times = await NotificationService.calculateTodayFromApi(
       latitude: safeLat,
       longitude: safeLng,
-    );
+    ) ??
+        NotificationService.calculateToday(
+          latitude: safeLat,
+          longitude: safeLng,
+        );
     try {
       await NotificationService.scheduleDailyPrayerNotifications(_times!);
     } catch (error, stackTrace) {
@@ -222,10 +234,14 @@ class PrayerProvider extends ChangeNotifier {
     );
     _locationNotice = null;
     _locationPermissionPermanentlyDenied = false;
-    _times = NotificationService.calculateToday(
+    _times = await NotificationService.calculateTodayFromApi(
       latitude: latitude,
       longitude: longitude,
-    );
+    ) ??
+        NotificationService.calculateToday(
+          latitude: latitude,
+          longitude: longitude,
+        );
     await _scheduleNotificationsSafely(_times!);
     notifyListeners();
   }

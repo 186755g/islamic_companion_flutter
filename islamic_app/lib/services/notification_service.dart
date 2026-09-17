@@ -1,11 +1,14 @@
+import 'dart:convert';
+
 import 'package:adhan_dart/adhan_dart.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:http/http.dart' as http;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tzdata;
 import '../models/prayer_model.dart';
 
-/// يحسب مواقيت الصلاة عبر مكتبة adhan_dart، ويجدول إشعارات محلية قبل الصلاة
-/// بعشر دقائق وعند دخول وقتها (لا تحتاج إنترنت).
+/// يجلب مواقيت الصلاة من خدمة موثوقة عند توفر الإنترنت، ويستخدم مكتبة
+/// adhan_dart كحل احتياطي محلي، ثم يجدول إشعارات الصلاة.
 ///
 /// ⚠️ ملاحظة إصدار: تحقق دوماً من الاسم الفعلي لثوابت طريقة الحساب في
 /// إصدار adhan_dart المثبَّت لديك عبر `flutter pub deps` أو ملفات الحزمة
@@ -46,6 +49,61 @@ class NotificationService {
       coordinates: coordinates,
       date: DateTime.now(),
       calculationParameters: params,
+    );
+  }
+
+  /// Fetches today's times from AlAdhan using Egypt's official calculation
+  /// method. The local Adhan calculation remains the offline fallback.
+  static Future<PrayerTimes?> calculateTodayFromApi({
+    required double latitude,
+    required double longitude,
+  }) async {
+    final date = DateTime.now();
+    final dateValue =
+        '${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}';
+    final uri = Uri.https('api.aladhan.com', '/v1/timings/$dateValue', {
+      'latitude': latitude.toString(),
+      'longitude': longitude.toString(),
+      'method': '5',
+      'school': '0',
+    });
+
+    try {
+      final response = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (response.statusCode != 200) return null;
+      final body = jsonDecode(response.body);
+      if (body is! Map || body['code'] != 200) return null;
+      final timings = body['data']?['timings'];
+      if (timings is! Map) return null;
+
+      final times = calculateToday(
+        latitude: latitude,
+        longitude: longitude,
+      );
+      times.fajr = _apiTime(timings['Fajr'], date);
+      times.sunrise = _apiTime(timings['Sunrise'], date);
+      times.dhuhr = _apiTime(timings['Dhuhr'], date);
+      times.asr = _apiTime(timings['Asr'], date);
+      times.maghrib = _apiTime(timings['Maghrib'], date);
+      times.isha = _apiTime(timings['Isha'], date);
+      return times;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static DateTime _apiTime(Object? value, DateTime date) {
+    final raw = value?.toString().split(' ').first ?? '';
+    final parts = raw.split(':');
+    if (parts.length != 2) {
+      throw const FormatException('Invalid prayer time from API');
+    }
+    return DateTime(
+      date.year,
+      date.month,
+      date.day,
+      int.parse(parts[0]),
+      int.parse(parts[1]),
     );
   }
 
