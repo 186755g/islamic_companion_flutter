@@ -81,6 +81,34 @@ class StorageService {
   static Future<void> setAdhanEnabled(bool enabled) =>
       _settings.put('adhan_enabled', enabled);
 
+  static double getAdhanVolume() =>
+      (_settings.get('adhan_volume') as num?)?.toDouble() ?? 1.0;
+
+  static Future<void> setAdhanVolume(double volume) =>
+      _settings.put('adhan_volume', volume.clamp(0.0, 1.0));
+
+  static String? getFajrAdhanPath() =>
+      _settings.get('fajr_adhan_path') as String?;
+
+  static Future<void> setFajrAdhanPath(String? path) async {
+    if (path == null) {
+      await _settings.delete('fajr_adhan_path');
+    } else {
+      await _settings.put('fajr_adhan_path', path);
+    }
+  }
+
+  static String? getRegularAdhanPath() =>
+      _settings.get('regular_adhan_path') as String?;
+
+  static Future<void> setRegularAdhanPath(String? path) async {
+    if (path == null) {
+      await _settings.delete('regular_adhan_path');
+    } else {
+      await _settings.put('regular_adhan_path', path);
+    }
+  }
+
   static Future<void> saveSelectedPlace({
     required String country,
     required String governorate,

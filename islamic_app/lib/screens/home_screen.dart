@@ -540,97 +540,241 @@ class _WeeklyPointsCard extends StatelessWidget {
   }
 }
 
-class _FardCard extends StatelessWidget {
+class _FardCard extends StatefulWidget {
   final FardPrayer prayer;
   const _FardCard({required this.prayer});
 
   @override
+  State<_FardCard> createState() => _FardCardState();
+}
+
+class _FardCardState extends State<_FardCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _animationController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1800),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final prov = context.watch<PrayerProvider>();
-    final unlocked = prov.isFardUnlocked(prayer);
-    final checked = prov.fardChecked(prayer);
-    final prayerTime = prov.timeFor(prayer);
-    final relatedSunnahs =
-        SunnahPrayer.values.where((s) => s.relatedFard == prayer).toList();
-    final visual = _PrayerVisual.forPrayer(prayer);
+    final unlocked = prov.isFardUnlocked(widget.prayer);
+    final checked = prov.fardChecked(widget.prayer);
+    final prayerTime = prov.timeFor(widget.prayer);
+    final relatedSunnahs = SunnahPrayer.values
+        .where((s) => s.relatedFard == widget.prayer)
+        .toList();
+    final visual = _PrayerVisual.forPrayer(widget.prayer);
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Row(
+    return AnimatedBuilder(
+      animation: _animationController,
+      builder: (context, child) {
+        final glow = checked
+            ? 0.18 + (_animationController.value * 0.08)
+            : 0.06 + (_animationController.value * 0.03);
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOut,
+          margin: const EdgeInsets.only(bottom: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                color: visual.accent.withValues(alpha: glow),
+                blurRadius: checked ? 16 : 9,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Card(
+            margin: EdgeInsets.zero,
+            clipBehavior: Clip.antiAlias,
+            child: Stack(
               children: [
-                Checkbox(
-                  value: checked,
-                  onChanged: unlocked ? (_) => prov.toggleFard(prayer) : null,
-                  activeColor: AppColors.success,
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _PrayerCardPattern(
+                      color: visual.accent.withValues(alpha: 0.08),
+                    ),
+                  ),
                 ),
-                Expanded(
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.white,
+                        visual.background.withValues(alpha: 0.42),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  padding: const EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(prayer.arabicName,
-                          textAlign: TextAlign.right,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(color: unlocked ? null : Colors.grey)),
-                      const SizedBox(height: 3),
-                      Text(
-                        prayerTime == null
-                            ? 'الوقت غير متاح'
-                            : DateFormat.jm('ar').format(prayerTime),
-                        style: TextStyle(
-                          color: visual.accent,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: checked,
+                            onChanged: unlocked
+                                ? (_) => prov.toggleFard(widget.prayer)
+                                : null,
+                            activeColor: AppColors.success,
+                          ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  widget.prayer.arabicName,
+                                  textAlign: TextAlign.right,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(
+                                        color: unlocked ? null : Colors.grey,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  prayerTime == null
+                                      ? 'الوقت غير متاح'
+                                      : DateFormat.jm('ar').format(prayerTime),
+                                  style: TextStyle(
+                                    color: visual.accent,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          _AnimatedPrayerIcon(
+                            visual: visual,
+                            enabled: unlocked,
+                            glow: glow,
+                          ),
+                          if (!unlocked)
+                            const Padding(
+                              padding: EdgeInsets.only(right: 8),
+                              child: Icon(Icons.lock_clock,
+                                  size: 18, color: Colors.grey),
+                            ),
+                        ],
                       ),
+                      if (relatedSunnahs.isNotEmpty) ...[
+                        Divider(
+                          height: 12,
+                          color: visual.accent.withValues(alpha: 0.18),
+                        ),
+                        ...relatedSunnahs.map(
+                          (s) => Row(
+                            children: [
+                              Checkbox(
+                                value: prov.sunnahChecked(s),
+                                onChanged: unlocked
+                                    ? (_) => prov.toggleSunnah(s)
+                                    : null,
+                                activeColor: AppColors.gold,
+                              ),
+                              Expanded(
+                                child: Text(
+                                  s.arabicName,
+                                  textAlign: TextAlign.right,
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
-                const SizedBox(width: 10),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: visual.background,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Icon(visual.icon, color: visual.accent, size: 26),
-                  ),
-                ),
-                if (!unlocked)
-                  const Padding(
-                    padding: EdgeInsets.only(right: 8),
-                    child: Icon(Icons.lock_clock, size: 18, color: Colors.grey),
-                  ),
               ],
             ),
-            if (relatedSunnahs.isNotEmpty) ...[
-              const Divider(height: 12),
-              ...relatedSunnahs.map((s) => Row(
-                    children: [
-                      Checkbox(
-                          value: prov.sunnahChecked(s),
-                          onChanged:
-                              unlocked ? (_) => prov.toggleSunnah(s) : null,
-                          activeColor: AppColors.gold),
-                      Expanded(
-                          child: Text(s.arabicName,
-                              textAlign: TextAlign.right,
-                              style: const TextStyle(fontSize: 13))),
-                    ],
-                  )),
-            ]
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AnimatedPrayerIcon extends StatelessWidget {
+  final _PrayerVisual visual;
+  final bool enabled;
+  final double glow;
+
+  const _AnimatedPrayerIcon({
+    required this.visual,
+    required this.enabled,
+    required this.glow,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.scale(
+      scale: 1 + (glow * 0.08),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: visual.background,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: visual.accent.withValues(alpha: 0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: visual.accent.withValues(alpha: glow),
+              blurRadius: 12,
+              spreadRadius: 1,
+            ),
           ],
+        ),
+        child: Icon(
+          visual.icon,
+          color: enabled ? visual.accent : Colors.grey,
+          size: 27,
         ),
       ),
     );
   }
+}
+
+class _PrayerCardPattern extends CustomPainter {
+  final Color color;
+
+  const _PrayerCardPattern({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    final center = Offset(size.width * 0.12, size.height * 0.15);
+    for (var radius = 22.0; radius <= 80; radius += 18) {
+      canvas.drawCircle(center, radius, paint);
+    }
+    final path = Path();
+    for (var x = -size.height; x < size.width; x += 34) {
+      path.moveTo(x, size.height);
+      path.lineTo(x + size.height, 0);
+    }
+    canvas.drawPath(path, paint..strokeWidth = 0.7);
+  }
+
+  @override
+  bool shouldRepaint(covariant _PrayerCardPattern oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 class _NextPrayerCard extends StatelessWidget {

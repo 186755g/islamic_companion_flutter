@@ -42,6 +42,9 @@ dependencies:
   uuid: ^4.4.2
   pdfx: ^2.11.0
   http: ^1.6.0
+  file_picker: ^13.1.0
+  audioplayers: ^6.8.1
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
@@ -60,6 +63,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/quran/
+    - android/app/src/main/res/raw/adhan_fajr.mp3
+    - android/app/src/main/res/raw/adhan_regular.mp3
   # ⚠️ خط Amiri معطّل افتراضياً لأن ملفات .ttf غير مرفقة فعلياً.
   # لو نزّلت الخط ووضعت الملفين في assets/fonts/، احذف علامات # من الأسطر
   # التالية لتفعيله. تركه مفعّلاً بدون الملفات الفعلية يفشل "flutter pub get".

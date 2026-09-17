@@ -18,6 +18,11 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
+  static bool _exactAlarmsAllowed = false;
+
+  static const _fajrChannelId = 'prayer_times_fajr_v2';
+  static const _regularChannelId = 'prayer_times_regular_v2';
+  static const _silentChannelId = 'prayer_times_silent_v2';
 
   static Future<void> init() async {
     if (_initialized) return;
@@ -37,7 +42,73 @@ class NotificationService {
     final androidImpl = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
     await androidImpl?.requestNotificationsPermission();
+    await androidImpl?.requestExactAlarmsPermission();
+    _exactAlarmsAllowed =
+        await androidImpl?.canScheduleExactNotifications() ?? false;
+    await _createNotificationChannels(androidImpl);
     _initialized = true;
+  }
+
+  static Future<void> _createNotificationChannels(
+      AndroidFlutterLocalNotificationsPlugin? androidImpl) async {
+    if (androidImpl == null) return;
+
+    await androidImpl.createNotificationChannel(
+      const AndroidNotificationChannel(
+        _fajrChannelId,
+        'أذان الفجر',
+        description: 'صوت أذان الفجر عند دخول وقته',
+        importance: Importance.max,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('adhan_fajr'),
+      ),
+    );
+    await androidImpl.createNotificationChannel(
+      const AndroidNotificationChannel(
+        _regularChannelId,
+        'الأذان',
+        description: 'صوت الأذان عند دخول وقت الصلاة',
+        importance: Importance.max,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('adhan_regular'),
+      ),
+    );
+    await androidImpl.createNotificationChannel(
+      const AndroidNotificationChannel(
+        _silentChannelId,
+        'تذكير الصلاة',
+        description: 'تذكير صامت قبل دخول وقت الصلاة',
+        importance: Importance.high,
+        playSound: false,
+      ),
+    );
+  }
+
+  static String _customChannelId(String prefix, String path) {
+    var hash = 0;
+    for (final codeUnit in path.codeUnits) {
+      hash = (hash * 31 + codeUnit) & 0x7fffffff;
+    }
+    return '${prefix}_custom_$hash';
+  }
+
+  static Future<void> _createCustomChannel({
+    required String channelId,
+    required String name,
+    required String path,
+  }) async {
+    final androidImpl = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    await androidImpl?.createNotificationChannel(
+      AndroidNotificationChannel(
+        channelId,
+        name,
+        description: 'صوت أذان مخصص',
+        importance: Importance.max,
+        playSound: true,
+        sound: UriAndroidNotificationSound(Uri.file(path).toString()),
+      ),
+    );
   }
 
   static PrayerTimes calculateToday({
@@ -170,15 +241,32 @@ class NotificationService {
     required FardPrayer prayer,
     required bool isAdhan,
   }) async {
+    final customPath = prayer == FardPrayer.fajr
+        ? StorageService.getFajrAdhanPath()
+        : StorageService.getRegularAdhanPath();
     final sound = isAdhan && StorageService.getAdhanEnabled()
-        ? RawResourceAndroidNotificationSound(
-            prayer == FardPrayer.fajr ? 'adhan_fajr' : 'adhan_regular')
+        ? customPath == null
+            ? RawResourceAndroidNotificationSound(
+                prayer == FardPrayer.fajr ? 'adhan_fajr' : 'adhan_regular')
+            : UriAndroidNotificationSound(Uri.file(customPath).toString())
         : null;
     final channelId = sound == null
-        ? 'prayer_times_silent_v1'
-        : prayer == FardPrayer.fajr
-            ? 'prayer_times_fajr_v1'
-            : 'prayer_times_regular_v1';
+        ? _silentChannelId
+        : customPath == null
+            ? prayer == FardPrayer.fajr
+                ? _fajrChannelId
+                : _regularChannelId
+            : _customChannelId(
+                prayer == FardPrayer.fajr ? 'prayer_fajr' : 'prayer_regular',
+                customPath,
+              );
+    if (customPath != null && sound != null) {
+      await _createCustomChannel(
+        channelId: channelId,
+        name: prayer == FardPrayer.fajr ? 'أذان فجر مخصص' : 'أذان مخصص',
+        path: customPath,
+      );
+    }
     final androidDetails = AndroidNotificationDetails(
       channelId,
       'مواقيت الصلاة',
@@ -200,7 +288,9 @@ class NotificationService {
       body,
       tz.TZDateTime.from(dateTime, tz.local),
       details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: _exactAlarmsAllowed
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
     );
