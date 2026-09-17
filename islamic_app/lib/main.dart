@@ -10,6 +10,7 @@ import 'providers/quran_provider.dart';
 import 'providers/stories_provider.dart';
 import 'services/notification_service.dart';
 import 'services/storage_service.dart';
+import 'services/hadith_widget_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/home_screen.dart';
 
@@ -17,6 +18,11 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ar');
   await StorageService.init();
+  try {
+    await HadithWidgetService.update();
+  } catch (error, stackTrace) {
+    debugPrint('Hadith widget update failed: $error\n$stackTrace');
+  }
   try {
     await NotificationService.init().timeout(const Duration(seconds: 5));
   } catch (error, stackTrace) {

@@ -22,6 +22,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   double _adhanVolume = 1.0;
   String? _fajrAdhanPath;
   String? _regularAdhanPath;
+  bool _savingAdhanSettings = false;
   final _audioPlayer = AudioPlayer();
   final _searchController = TextEditingController();
 
@@ -99,26 +100,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _setAdhanEnabled(bool enabled) async {
-    await StorageService.setAdhanEnabled(enabled);
     setState(() => _adhanEnabled = enabled);
-    if (!mounted) return;
-    final times = context.read<PrayerProvider>().times;
-    if (times != null) {
-      await NotificationService.scheduleDailyPrayerNotifications(times);
-    }
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(enabled
-            ? 'تم تفعيل صوت الأذان'
-            : 'تم إيقاف صوت الأذان مع بقاء الإشعارات'),
-      ),
-    );
   }
 
   Future<void> _setAdhanVolume(double value) async {
     setState(() => _adhanVolume = value);
-    await StorageService.setAdhanVolume(value);
   }
 
   Future<void> _pickAdhanFile({required bool fajr}) async {
@@ -129,26 +115,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (path == null || path.isEmpty) return;
 
     if (fajr) {
-      await StorageService.setFajrAdhanPath(path);
       setState(() => _fajrAdhanPath = path);
     } else {
-      await StorageService.setRegularAdhanPath(path);
       setState(() => _regularAdhanPath = path);
     }
+  }
 
-    if (!mounted) return;
-    final times = context.read<PrayerProvider>().times;
-    if (times != null) {
-      await NotificationService.scheduleDailyPrayerNotifications(times);
+  Future<void> _saveAdhanSettings() async {
+    setState(() => _savingAdhanSettings = true);
+    try {
+      await StorageService.setAdhanEnabled(_adhanEnabled);
+      await StorageService.setAdhanVolume(_adhanVolume);
+      await StorageService.setFajrAdhanPath(_fajrAdhanPath);
+      await StorageService.setRegularAdhanPath(_regularAdhanPath);
+
+      if (!mounted) return;
+      final times = context.read<PrayerProvider>().times;
+      if (times != null) {
+        await NotificationService.scheduleDailyPrayerNotifications(times);
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_adhanEnabled
+              ? 'تم حفظ إعدادات صوت الأذان وتفعيله'
+              : 'تم حفظ الإعدادات وإيقاف صوت الأذان'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _savingAdhanSettings = false);
     }
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(fajr
-            ? 'تم اختيار أذان الفجر المخصص'
-            : 'تم اختيار أذان الصلوات المخصص'),
-      ),
-    );
   }
 
   Future<void> _previewAdhan(String? path, {required bool fajr}) async {
@@ -308,9 +304,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onChanged: _setAdhanEnabled,
                       secondary: const Icon(Icons.volume_up_rounded,
                           color: AppColors.deepGreen),
-                      title: const Text('تشغيل صوت الأذان'),
+                      title: Text(_adhanEnabled
+                          ? 'صوت الأذان يعمل'
+                          : 'صوت الأذان متوقف'),
                       subtitle: const Text(
-                          'يمكنك تخصيص صوت الفجر وباقي الصلوات بشكل مستقل'),
+                          'فعّل أو أوقف الصوت ثم اضغط حفظ الإعدادات'),
                     ),
                     ListTile(
                       leading: const Icon(Icons.tune),
@@ -341,6 +339,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Text(
                         'يتم استخدام مستوى إشعارات الهاتف عند تشغيل الأذان في الخلفية.',
                         style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed:
+                              _savingAdhanSettings ? null : _saveAdhanSettings,
+                          icon: _savingAdhanSettings
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.save_outlined),
+                          label: Text(_savingAdhanSettings
+                              ? 'جارٍ الحفظ...'
+                              : 'حفظ إعدادات الأذان'),
+                        ),
                       ),
                     ),
                   ],
