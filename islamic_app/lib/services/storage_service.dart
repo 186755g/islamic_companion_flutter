@@ -71,6 +71,26 @@ class StorageService {
     await _settings.put('lng', lng);
   }
 
+  static String? getCountry() => _settings.get('country') as String?;
+
+  static String? getGovernorate() => _settings.get('governorate') as String?;
+
+  static Future<void> saveSelectedPlace({
+    required String country,
+    required String governorate,
+    required double latitude,
+    required double longitude,
+  }) async {
+    await _settings.put('country', country);
+    await _settings.put('governorate', governorate);
+    await saveLocation(latitude, longitude);
+  }
+
+  static Future<void> clearSelectedPlace() async {
+    await _settings.delete('country');
+    await _settings.delete('governorate');
+  }
+
   // ---------- Streak ----------
   static Box get _streak => Hive.box(streakBox);
 

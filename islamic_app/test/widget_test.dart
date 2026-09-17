@@ -26,4 +26,19 @@ void main() {
     expect(find.text('المغرب'), findsOneWidget);
     expect(find.text('العشاء'), findsOneWidget);
   });
+
+  testWidgets('shows country and governorate selection in settings',
+      (WidgetTester tester) async {
+    await StorageService.init();
+    await tester.pumpWidget(const IslamicCompanionApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+
+    expect(find.text('الإعدادات'), findsOneWidget);
+    expect(find.text('الدولة'), findsOneWidget);
+    expect(find.text('مصر'), findsWidgets);
+    expect(find.text('المحافظة'), findsOneWidget);
+  });
 }

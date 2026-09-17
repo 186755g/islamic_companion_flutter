@@ -31,6 +31,8 @@ class PrayerProvider extends ChangeNotifier {
   bool get requestingLocationPermission => _requestingLocationPermission;
   bool get locationPermissionPermanentlyDenied =>
       _locationPermissionPermanentlyDenied;
+  String? get selectedCountry => StorageService.getCountry();
+  String? get selectedGovernorate => StorageService.getGovernorate();
 
   String get _todayKey => DateFormat('yyyy-MM-dd').format(DateTime.now());
 
@@ -53,9 +55,12 @@ class PrayerProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> _resolveLocationAndTimes() async {
-    double? lat = StorageService.getLatitude();
-    double? lng = StorageService.getLongitude();
+  Future<void> _resolveLocationAndTimes(
+      {bool forceDeviceLocation = false}) async {
+    double? lat =
+        forceDeviceLocation ? null : StorageService.getLatitude();
+    double? lng =
+        forceDeviceLocation ? null : StorageService.getLongitude();
 
     if (lat == null || lng == null) {
       try {
@@ -154,7 +159,7 @@ class PrayerProvider extends ChangeNotifier {
 
       _locationNotice = null;
       _locationPermissionPermanentlyDenied = false;
-      await _resolveLocationAndTimes();
+      await _resolveLocationAndTimes(forceDeviceLocation: true);
     } catch (error, stackTrace) {
       debugPrint('Failed to request location permission: $error\n$stackTrace');
       _setLocationNotice();
@@ -167,6 +172,7 @@ class PrayerProvider extends ChangeNotifier {
   Future<void> useMakkahAsDefault() async {
     const makkahLat = 21.4225;
     const makkahLng = 39.8262;
+    await StorageService.clearSelectedPlace();
     await StorageService.saveLocation(makkahLat, makkahLng);
     _locationNotice = null;
     _locationPermissionPermanentlyDenied = false;
@@ -186,6 +192,7 @@ class PrayerProvider extends ChangeNotifier {
   Future<void> setManualLocation(double latitude, double longitude) async {
     final safeLat = latitude.clamp(-90.0, 90.0);
     final safeLng = longitude.clamp(-180.0, 180.0);
+    await StorageService.clearSelectedPlace();
     await StorageService.saveLocation(safeLat, safeLng);
     _locationNotice = null;
     _locationPermissionPermanentlyDenied = false;
@@ -199,6 +206,27 @@ class PrayerProvider extends ChangeNotifier {
       debugPrint(
           'Failed to schedule prayer notifications: $error\n$stackTrace');
     }
+    notifyListeners();
+  }
+
+  Future<void> selectEgyptGovernorate({
+    required String governorate,
+    required double latitude,
+    required double longitude,
+  }) async {
+    await StorageService.saveSelectedPlace(
+      country: 'مصر',
+      governorate: governorate,
+      latitude: latitude,
+      longitude: longitude,
+    );
+    _locationNotice = null;
+    _locationPermissionPermanentlyDenied = false;
+    _times = NotificationService.calculateToday(
+      latitude: latitude,
+      longitude: longitude,
+    );
+    await _scheduleNotificationsSafely(_times!);
     notifyListeners();
   }
 

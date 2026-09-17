@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../data/prayer_duas_data.dart';
 import '../providers/streak_provider.dart';
@@ -15,6 +16,17 @@ class PrayerDuasScreen extends StatefulWidget {
 }
 
 class _PrayerDuasScreenState extends State<PrayerDuasScreen> {
+  void _copyDua(String dua) {
+    Clipboard.setData(ClipboardData(text: dua));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('تم نسخ الدعاء'),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(milliseconds: 900),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -51,19 +63,46 @@ class _PrayerDuasScreenState extends State<PrayerDuasScreen> {
                 collapsedIconColor: AppColors.gold,
                 childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
                 children: [
-                  ...section.duas.map(
-                    (dua) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Text(
-                        dua,
-                        textAlign: TextAlign.right,
-                        style: const TextStyle(
-                          fontSize: 15.5,
-                          height: 1.9,
+                  ...section.duas.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final dua = entry.value;
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.ivory,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.gold.withValues(alpha: 0.25),
                         ),
                       ),
-                    ),
-                  ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          IconButton(
+                            onPressed: () => _copyDua(dua),
+                            tooltip: 'نسخ الدعاء',
+                            icon: const Icon(Icons.copy_all_rounded),
+                            color: AppColors.deepGreen,
+                            splashRadius: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '${index + 1}. $dua',
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(
+                                fontSize: 15.5,
+                                height: 1.9,
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
                   if (section.note != null)
                     Container(
                       width: double.infinity,
