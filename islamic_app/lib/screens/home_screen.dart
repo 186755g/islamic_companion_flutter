@@ -13,7 +13,6 @@ import 'progress_screen.dart';
 import 'quran_screen.dart';
 import 'stories_screen.dart';
 import 'hadith_screen.dart';
-import 'prayer_duas_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -49,23 +48,207 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: pages[_tabIndex],
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: _BottomNavigation(
         selectedIndex: _tabIndex,
-        onDestinationSelected: (i) => setState(() => _tabIndex = i),
-        backgroundColor: Colors.white,
-        indicatorColor: AppColors.lightGold.withValues(alpha: 0.5),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.mosque), label: 'الصلاة'),
-          NavigationDestination(icon: Icon(Icons.menu_book), label: 'الأذكار'),
-          NavigationDestination(
-              icon: Icon(Icons.import_contacts), label: 'القرآن'),
-          NavigationDestination(
-              icon: Icon(Icons.local_library), label: 'المكتبة'),
-          NavigationDestination(
-              icon: Icon(Icons.emoji_events), label: 'التقدّم'),
-        ],
+        onSelected: (i) => setState(() => _tabIndex = i),
       ),
     );
+  }
+}
+
+class _BottomNavigation extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  const _BottomNavigation({
+    required this.selectedIndex,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const items = [
+      (icon: Icons.mosque_rounded, label: 'الصلاة', effect: _NavEffect.glow),
+      (
+        icon: Icons.menu_book_rounded,
+        label: 'الأذكار',
+        effect: _NavEffect.pulse
+      ),
+      (
+        icon: Icons.import_contacts_rounded,
+        label: 'القرآن',
+        effect: _NavEffect.lift
+      ),
+      (
+        icon: Icons.local_library_rounded,
+        label: 'المكتبة',
+        effect: _NavEffect.open
+      ),
+      (
+        icon: Icons.emoji_events_rounded,
+        label: 'التقدّم',
+        effect: _NavEffect.bounce
+      ),
+    ];
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(8, 7, 8, 5),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.deepGreen.withValues(alpha: .1),
+              blurRadius: 12,
+              offset: const Offset(0, -3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            for (var i = 0; i < items.length; i++)
+              Expanded(
+                child: _AnimatedNavItem(
+                  icon: items[i].icon,
+                  label: items[i].label,
+                  effect: items[i].effect,
+                  selected: selectedIndex == i,
+                  onTap: () => onSelected(i),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+enum _NavEffect { glow, pulse, lift, open, bounce }
+
+class _AnimatedNavItem extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final _NavEffect effect;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _AnimatedNavItem({
+    required this.icon,
+    required this.label,
+    required this.effect,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  State<_AnimatedNavItem> createState() => _AnimatedNavItemState();
+}
+
+class _AnimatedNavItemState extends State<_AnimatedNavItem> {
+  bool _pressed = false;
+
+  void _handleTap() {
+    setState(() => _pressed = true);
+    widget.onTap();
+    Future<void>.delayed(const Duration(milliseconds: 220), () {
+      if (mounted) setState(() => _pressed = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final active = widget.selected || _pressed;
+    final color = active ? AppColors.deepGreen : Colors.grey.shade600;
+    return Semantics(
+      button: true,
+      selected: widget.selected,
+      label: widget.label,
+      child: GestureDetector(
+        onTap: _handleTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 5),
+          decoration: BoxDecoration(
+            color: AppColors.lightGold.withValues(
+              alpha: widget.selected ? .62 : 0,
+            ),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildAnimatedIcon(color),
+              const SizedBox(height: 2),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 180),
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight:
+                      widget.selected ? FontWeight.w700 : FontWeight.w500,
+                ),
+                child: Text(widget.label),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimatedIcon(Color color) {
+    final icon = Icon(widget.icon, color: color, size: 25);
+    switch (widget.effect) {
+      case _NavEffect.glow:
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: widget.selected
+                ? [
+                    BoxShadow(
+                      color: AppColors.gold.withValues(alpha: .35),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : const [],
+          ),
+          child: icon,
+        );
+      case _NavEffect.pulse:
+        return AnimatedScale(
+          scale: _pressed ? 1.2 : 1,
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOutBack,
+          child: icon,
+        );
+      case _NavEffect.lift:
+        return AnimatedSlide(
+          offset: _pressed ? const Offset(0, -.16) : Offset.zero,
+          duration: const Duration(milliseconds: 170),
+          curve: Curves.easeOut,
+          child: icon,
+        );
+      case _NavEffect.open:
+        return AnimatedRotation(
+          turns: _pressed ? -.04 : 0,
+          duration: const Duration(milliseconds: 170),
+          curve: Curves.easeOut,
+          child: icon,
+        );
+      case _NavEffect.bounce:
+        return TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: _pressed ? -4 : 0),
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          builder: (context, value, child) =>
+              Transform.translate(offset: Offset(0, value), child: child),
+          child: icon,
+        );
+    }
   }
 }
 
@@ -272,16 +455,6 @@ class _LibraryTab extends StatelessWidget {
           subtitle: 'سِيَر موثقة للأنبياء والصحابة الكرام رضوان الله عليهم',
           onTap: () => Navigator.of(context)
               .push(MaterialPageRoute(builder: (_) => const StoriesScreen())),
-        ),
-        const SizedBox(height: 12),
-        _LibraryTile(
-          icon: Icons.self_improvement,
-          title: 'أذكار الصلاة',
-          subtitle:
-              'أدعية الاستفتاح والركوع والسجود والتشهد والقنوت للحفظ والمراجعة',
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const PrayerDuasScreen()),
-          ),
         ),
       ],
     );

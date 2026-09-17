@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../data/egypt_governorates.dart';
 import '../providers/prayer_provider.dart';
+import '../services/notification_service.dart';
+import '../services/storage_service.dart';
+import '../theme/app_theme.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,7 +16,14 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   String? _selectedGovernorate;
   bool _showSearch = false;
+  bool _adhanEnabled = true;
   final _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _adhanEnabled = StorageService.getAdhanEnabled();
+  }
 
   @override
   void dispose() {
@@ -65,6 +75,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('تم استخدام مكة لحساب مواقيت الصلاة')),
+    );
+  }
+
+  Future<void> _setAdhanEnabled(bool enabled) async {
+    await StorageService.setAdhanEnabled(enabled);
+    setState(() => _adhanEnabled = enabled);
+    if (!mounted) return;
+    final times = context.read<PrayerProvider>().times;
+    if (times != null) {
+      await NotificationService.scheduleDailyPrayerNotifications(times);
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(enabled
+            ? 'تم تفعيل صوت الأذان'
+            : 'تم إيقاف صوت الأذان مع بقاء الإشعارات'),
+      ),
     );
   }
 
@@ -129,6 +157,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ],
               ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: SwitchListTile.adaptive(
+              value: _adhanEnabled,
+              onChanged: _setAdhanEnabled,
+              secondary: const Icon(Icons.volume_up_rounded,
+                  color: AppColors.deepGreen),
+              title: const Text('تشغيل صوت الأذان'),
+              subtitle: const Text(
+                  'صوت الفجر مستقل، وباقي الصلوات تستخدم صوت الأذان العام'),
             ),
           ),
           const SizedBox(height: 16),

@@ -30,4 +30,4 @@ class Zikr {
       };
 }
 
-enum AzkarCategory { morning, evening }
+enum AzkarCategory { morning, evening, prayer }

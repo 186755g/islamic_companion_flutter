@@ -75,6 +75,12 @@ class StorageService {
 
   static String? getGovernorate() => _settings.get('governorate') as String?;
 
+  static bool getAdhanEnabled() =>
+      (_settings.get('adhan_enabled') as bool?) ?? true;
+
+  static Future<void> setAdhanEnabled(bool enabled) =>
+      _settings.put('adhan_enabled', enabled);
+
   static Future<void> saveSelectedPlace({
     required String country,
     required String governorate,

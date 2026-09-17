@@ -18,7 +18,7 @@ class _AzkarScreenState extends State<AzkarScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -33,7 +33,11 @@ class _AzkarScreenState extends State<AzkarScreen>
             indicatorColor: AppColors.gold,
             labelColor: AppColors.ivory,
             unselectedLabelColor: AppColors.lightGold.withValues(alpha: 0.6),
-            tabs: const [Tab(text: 'أذكار الصباح'), Tab(text: 'أذكار المساء')],
+            tabs: const [
+              Tab(text: 'الصباح'),
+              Tab(text: 'المساء'),
+              Tab(text: 'الصلاة'),
+            ],
           ),
         ),
         Expanded(
@@ -42,6 +46,7 @@ class _AzkarScreenState extends State<AzkarScreen>
             children: const [
               _AzkarList(category: AzkarCategory.morning),
               _AzkarList(category: AzkarCategory.evening),
+              _AzkarList(category: AzkarCategory.prayer),
             ],
           ),
         ),

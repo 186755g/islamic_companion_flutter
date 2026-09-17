@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tzdata;
 import '../models/prayer_model.dart';
+import 'storage_service.dart';
 
 /// يجلب مواقيت الصلاة من خدمة موثوقة عند توفر الإنترنت، ويستخدم مكتبة
 /// adhan_dart كحل احتياطي محلي، ثم يجدول إشعارات الصلاة.
@@ -45,11 +46,24 @@ class NotificationService {
   }) {
     final coordinates = Coordinates(latitude, longitude);
     final params = CalculationMethodParameters.muslimWorldLeague();
-    return PrayerTimes(
+    final times = PrayerTimes(
       coordinates: coordinates,
       date: DateTime.now(),
       calculationParameters: params,
     );
+    return _convertUtcTimesToLocal(times);
+  }
+
+  static PrayerTimes _convertUtcTimesToLocal(PrayerTimes times) {
+    times.fajr = times.fajr.toLocal();
+    times.sunrise = times.sunrise.toLocal();
+    times.dhuhr = times.dhuhr.toLocal();
+    times.asr = times.asr.toLocal();
+    times.maghrib = times.maghrib.toLocal();
+    times.isha = times.isha.toLocal();
+    times.ishaBefore = times.ishaBefore.toLocal();
+    times.fajrAfter = times.fajrAfter.toLocal();
+    return times;
   }
 
   /// Fetches today's times from AlAdhan using Egypt's official calculation
@@ -129,6 +143,8 @@ class NotificationService {
           title: 'حان الآن وقت صلاة ${entry.key.arabicName}',
           body: 'حي على الصلاة، حي على الفلاح',
           dateTime: prayerTime,
+          prayer: entry.key,
+          isAdhan: true,
         );
       }
 
@@ -139,6 +155,8 @@ class NotificationService {
           title: 'اقتربت صلاة ${entry.key.arabicName}',
           body: 'تبقى 10 دقائق على دخول وقت الصلاة.',
           dateTime: reminderTime,
+          prayer: entry.key,
+          isAdhan: false,
         );
       }
     }
@@ -149,20 +167,31 @@ class NotificationService {
     required String title,
     required String body,
     required DateTime dateTime,
+    required FardPrayer prayer,
+    required bool isAdhan,
   }) async {
-    // ⚠️ صوت الأذان: RawResourceAndroidNotificationSound('adhan') يشير إلى
-    // ملف android/app/src/main/res/raw/adhan.mp3 غير مرفق افتراضياً. بدونه
-    // يُستخدم صوت الإشعار الافتراضي للنظام (لا يسبب كراش)، لكن لن تسمع الأذان
-    // الفعلي إلا بعد إضافة الملف الصوتي في المسار المذكور.
-    const androidDetails = AndroidNotificationDetails(
-      'prayer_times_channel',
+    final sound = isAdhan && StorageService.getAdhanEnabled()
+        ? RawResourceAndroidNotificationSound(
+            prayer == FardPrayer.fajr ? 'adhan_fajr' : 'adhan_regular')
+        : null;
+    final channelId = sound == null
+        ? 'prayer_times_silent_v1'
+        : prayer == FardPrayer.fajr
+            ? 'prayer_times_fajr_v1'
+            : 'prayer_times_regular_v1';
+    final androidDetails = AndroidNotificationDetails(
+      channelId,
       'مواقيت الصلاة',
       channelDescription: 'إشعارات دخول أوقات الصلاة',
       importance: Importance.max,
       priority: Priority.high,
+      playSound: sound != null,
+      sound: sound,
     );
-    const iosDetails = DarwinNotificationDetails(presentSound: true);
-    const details =
+    final iosDetails = DarwinNotificationDetails(
+      presentSound: StorageService.getAdhanEnabled(),
+    );
+    final details =
         NotificationDetails(android: androidDetails, iOS: iosDetails);
 
     await _plugin.zonedSchedule(
