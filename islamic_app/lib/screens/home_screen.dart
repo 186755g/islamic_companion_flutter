@@ -13,6 +13,7 @@ import 'progress_screen.dart';
 import 'quran_screen.dart';
 import 'stories_screen.dart';
 import 'hadith_screen.dart';
+import 'prayer_duas_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -271,6 +272,16 @@ class _LibraryTab extends StatelessWidget {
           subtitle: 'سِيَر موثقة للأنبياء والصحابة الكرام رضوان الله عليهم',
           onTap: () => Navigator.of(context)
               .push(MaterialPageRoute(builder: (_) => const StoriesScreen())),
+        ),
+        const SizedBox(height: 12),
+        _LibraryTile(
+          icon: Icons.self_improvement,
+          title: 'أذكار الصلاة',
+          subtitle:
+              'أدعية الاستفتاح والركوع والسجود والتشهد والقنوت للحفظ والمراجعة',
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const PrayerDuasScreen()),
+          ),
         ),
       ],
     );
