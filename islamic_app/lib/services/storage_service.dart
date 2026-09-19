@@ -29,7 +29,8 @@ class StorageService {
 
   static int getZikrCount(String id) => (_azkar.get(id) as int?) ?? 0;
 
-  static Future<void> setZikrCount(String id, int count) => _azkar.put(id, count);
+  static Future<void> setZikrCount(String id, int count) =>
+      _azkar.put(id, count);
 
   static Future<void> resetAzkarProgress(List<String> ids) async {
     for (final id in ids) {
@@ -46,19 +47,22 @@ class StorageService {
     return DailyPrayerLog.fromJson(Map<String, dynamic>.from(raw));
   }
 
-  static Future<void> saveLog(DailyPrayerLog log) => _prayerLog.put(log.dateKey, log.toJson());
+  static Future<void> saveLog(DailyPrayerLog log) =>
+      _prayerLog.put(log.dateKey, log.toJson());
 
   // ---------- Points ----------
   static Box get _points => Hive.box(pointsBox);
 
-  static int getWeeklyPoints(String weekKey) => (_points.get(weekKey) as int?) ?? 0;
+  static int getWeeklyPoints(String weekKey) =>
+      (_points.get(weekKey) as int?) ?? 0;
 
   static Future<void> addWeeklyPoints(String weekKey, int delta) async {
     final current = getWeeklyPoints(weekKey);
     await _points.put(weekKey, current + delta);
   }
 
-  static Future<void> setWeeklyPoints(String weekKey, int value) => _points.put(weekKey, value);
+  static Future<void> setWeeklyPoints(String weekKey, int value) =>
+      _points.put(weekKey, value);
 
   // ---------- Settings ----------
   static Box get _settings => Hive.box(settingsBox);
@@ -87,8 +91,37 @@ class StorageService {
   static Future<void> setAdhanVolume(double volume) =>
       _settings.put('adhan_volume', volume.clamp(0.0, 1.0));
 
+  static String getPrayerCardAnimation() =>
+      (_settings.get('prayer_card_animation') as String?) ?? 'slide';
+
+  static Future<void> setPrayerCardAnimation(String animation) =>
+      _settings.put('prayer_card_animation', animation);
+
   static String? getFajrAdhanPath() =>
       _settings.get('fajr_adhan_path') as String?;
+
+  static List<String> getFajrAdhanPaths() {
+    final stored = _settings.get('fajr_adhan_paths');
+    if (stored is List) return stored.whereType<String>().toList();
+    final legacy = getFajrAdhanPath();
+    return legacy == null ? [] : [legacy];
+  }
+
+  static String? getSelectedFajrAdhanPath() {
+    final selected = _settings.get('selected_fajr_adhan_path') as String?;
+    return selected ?? getFajrAdhanPath();
+  }
+
+  static Future<void> setFajrAdhanPaths(List<String> paths) =>
+      _settings.put('fajr_adhan_paths', paths);
+
+  static Future<void> setSelectedFajrAdhanPath(String? path) async {
+    if (path == null) {
+      await _settings.delete('selected_fajr_adhan_path');
+    } else {
+      await _settings.put('selected_fajr_adhan_path', path);
+    }
+  }
 
   static Future<void> setFajrAdhanPath(String? path) async {
     if (path == null) {
@@ -101,11 +134,45 @@ class StorageService {
   static String? getRegularAdhanPath() =>
       _settings.get('regular_adhan_path') as String?;
 
+  static List<String> getRegularAdhanPaths() {
+    final stored = _settings.get('regular_adhan_paths');
+    if (stored is List) return stored.whereType<String>().toList();
+    final legacy = getRegularAdhanPath();
+    return legacy == null ? [] : [legacy];
+  }
+
+  static String? getSelectedRegularAdhanPath() {
+    final selected = _settings.get('selected_regular_adhan_path') as String?;
+    return selected ?? getRegularAdhanPath();
+  }
+
+  static Future<void> setRegularAdhanPaths(List<String> paths) =>
+      _settings.put('regular_adhan_paths', paths);
+
+  static Future<void> setSelectedRegularAdhanPath(String? path) async {
+    if (path == null) {
+      await _settings.delete('selected_regular_adhan_path');
+    } else {
+      await _settings.put('selected_regular_adhan_path', path);
+    }
+  }
+
   static Future<void> setRegularAdhanPath(String? path) async {
     if (path == null) {
       await _settings.delete('regular_adhan_path');
     } else {
       await _settings.put('regular_adhan_path', path);
+    }
+  }
+
+  static String? getNotificationSoundPath() =>
+      _settings.get('notification_sound_path') as String?;
+
+  static Future<void> setNotificationSoundPath(String? path) async {
+    if (path == null) {
+      await _settings.delete('notification_sound_path');
+    } else {
+      await _settings.put('notification_sound_path', path);
     }
   }
 
@@ -134,7 +201,8 @@ class StorageService {
     return StreakModel.fromJson(Map<dynamic, dynamic>.from(raw));
   }
 
-  static Future<void> saveStreak(StreakModel model) => _streak.put('streak', model.toJson());
+  static Future<void> saveStreak(StreakModel model) =>
+      _streak.put('streak', model.toJson());
 
   // ---------- Quran bookmark ----------
   static Box get _quran => Hive.box(quranBox);
@@ -157,7 +225,8 @@ class StorageService {
         .toList();
   }
 
-  static Future<void> saveKhatmahPlan(KhatmahPlan plan) => _khatmah.put(plan.id, plan.toJson());
+  static Future<void> saveKhatmahPlan(KhatmahPlan plan) =>
+      _khatmah.put(plan.id, plan.toJson());
 
   static Future<void> deleteKhatmahPlan(String id) => _khatmah.delete(id);
 }

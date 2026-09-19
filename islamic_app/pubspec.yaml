@@ -27,6 +27,7 @@ dependencies:
 
   # Timezone data (required by flutter_local_notifications for scheduling)
   timezone: ^0.9.4
+  flutter_timezone: ^4.1.0
 
   # Geolocation (needed to calculate prayer times accurately per-location)
   geolocator: ^13.0.1

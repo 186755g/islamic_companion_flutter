@@ -1,5 +1,6 @@
 import 'package:home_widget/home_widget.dart';
 import '../data/hadith_data.dart';
+import 'storage_service.dart';
 
 /// Synchronizes the hadith collection with the Android home-screen widget.
 class HadithWidgetService {
@@ -17,6 +18,17 @@ class HadithWidgetService {
       await HomeWidget.saveWidgetData<String>(
           'hadith_${index}_narrator', hadith.narrator);
     }
+    final streak = StorageService.getStreak();
+    await HomeWidget.saveWidgetData<int>(
+        'streak_current', streak.currentStreak);
+    await HomeWidget.saveWidgetData<int>(
+        'streak_longest', streak.longestStreak);
+    await HomeWidget.saveWidgetData<int>(
+        'streak_total_days', streak.totalActiveDays);
+    await HomeWidget.saveWidgetData<bool>(
+        'streak_active_today',
+        streak.lastActiveDate ==
+            DateTime.now().toIso8601String().substring(0, 10));
     await HomeWidget.updateWidget(name: widgetName);
   }
 }

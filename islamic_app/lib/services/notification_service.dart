@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:adhan_dart/adhan_dart.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:http/http.dart' as http;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tzdata;
@@ -23,13 +25,16 @@ class NotificationService {
 
   static bool get isInitialized => _initialized;
 
-  static const _fajrChannelId = 'prayer_times_fajr_v2';
-  static const _regularChannelId = 'prayer_times_regular_v2';
+  // These channel IDs are intentionally versioned. Android persists channel
+  // settings, so changing the audio usage on an existing channel has no effect.
+  static const _fajrChannelId = 'prayer_times_fajr_v3_alarm';
+  static const _regularChannelId = 'prayer_times_regular_v3_alarm';
   static const _silentChannelId = 'prayer_times_silent_v2';
 
   static Future<void> init() async {
     if (_initialized) return;
     tzdata.initializeTimeZones();
+    await _configureLocalTimezone();
 
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings(
@@ -52,6 +57,18 @@ class NotificationService {
     _initialized = true;
   }
 
+  static Future<void> _configureLocalTimezone() async {
+    try {
+      final timezoneName = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(timezoneName));
+    } catch (error, stackTrace) {
+      // Scheduling must still work if the native timezone plugin is unavailable.
+      // The package default is UTC, so keep the failure visible in logs.
+      tz.setLocalLocation(tz.getLocation('Etc/UTC'));
+      debugPrint('Failed to configure local timezone: $error\n$stackTrace');
+    }
+  }
+
   static Future<void> _createNotificationChannels(
       AndroidFlutterLocalNotificationsPlugin? androidImpl) async {
     if (androidImpl == null) return;
@@ -64,6 +81,7 @@ class NotificationService {
         importance: Importance.max,
         playSound: true,
         sound: RawResourceAndroidNotificationSound('adhan_fajr'),
+        audioAttributesUsage: AudioAttributesUsage.alarm,
       ),
     );
     await androidImpl.createNotificationChannel(
@@ -74,6 +92,7 @@ class NotificationService {
         importance: Importance.max,
         playSound: true,
         sound: RawResourceAndroidNotificationSound('adhan_regular'),
+        audioAttributesUsage: AudioAttributesUsage.alarm,
       ),
     );
     await androidImpl.createNotificationChannel(
@@ -92,13 +111,14 @@ class NotificationService {
     for (final codeUnit in path.codeUnits) {
       hash = (hash * 31 + codeUnit) & 0x7fffffff;
     }
-    return '${prefix}_custom_$hash';
+    return '${prefix}_v3_alarm_custom_$hash';
   }
 
   static Future<void> _createCustomChannel({
     required String channelId,
     required String name,
     required String path,
+    required AudioAttributesUsage audioUsage,
   }) async {
     final androidImpl = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
@@ -110,6 +130,7 @@ class NotificationService {
         importance: Importance.max,
         playSound: true,
         sound: UriAndroidNotificationSound(Uri.file(path).toString()),
+        audioAttributesUsage: audioUsage,
       ),
     );
   }
@@ -211,29 +232,33 @@ class NotificationService {
     };
 
     final now = DateTime.now();
-    for (final entry in entries.entries) {
-      final prayerTime = entry.value;
-      if (prayerTime.isAfter(now)) {
-        await _scheduleAt(
-          id: entry.key.index,
-          title: 'حان الآن وقت صلاة ${entry.key.arabicName}',
-          body: 'حي على الصلاة، حي على الفلاح',
-          dateTime: prayerTime,
-          prayer: entry.key,
-          isAdhan: true,
-        );
-      }
+    // Keep tomorrow's alarms too. This prevents a phone that stays idle
+    // overnight from losing the next day's adhan until the app is opened.
+    for (var dayOffset = 0; dayOffset <= 1; dayOffset++) {
+      for (final entry in entries.entries) {
+        final prayerTime = entry.value.add(Duration(days: dayOffset));
+        if (prayerTime.isAfter(now)) {
+          await _scheduleAt(
+            id: dayOffset * 10 + entry.key.index,
+            title: 'حان الآن وقت صلاة ${entry.key.arabicName}',
+            body: 'حي على الصلاة، حي على الفلاح',
+            dateTime: prayerTime,
+            prayer: entry.key,
+            isAdhan: true,
+          );
+        }
 
-      final reminderTime = prayerTime.subtract(const Duration(minutes: 10));
-      if (reminderTime.isAfter(now)) {
-        await _scheduleAt(
-          id: 100 + entry.key.index,
-          title: 'اقتربت صلاة ${entry.key.arabicName}',
-          body: 'تبقى 10 دقائق على دخول وقت الصلاة.',
-          dateTime: reminderTime,
-          prayer: entry.key,
-          isAdhan: false,
-        );
+        final reminderTime = prayerTime.subtract(const Duration(minutes: 10));
+        if (reminderTime.isAfter(now)) {
+          await _scheduleAt(
+            id: 100 + dayOffset * 10 + entry.key.index,
+            title: 'اقتربت صلاة ${entry.key.arabicName}',
+            body: 'تبقى 10 دقائق على دخول وقت الصلاة.',
+            dateTime: reminderTime,
+            prayer: entry.key,
+            isAdhan: false,
+          );
+        }
       }
     }
   }
@@ -246,14 +271,17 @@ class NotificationService {
     required FardPrayer prayer,
     required bool isAdhan,
   }) async {
-    final selectedCustomPath = prayer == FardPrayer.fajr
-        ? StorageService.getFajrAdhanPath()
-        : StorageService.getRegularAdhanPath();
-    final customPath = selectedCustomPath != null &&
-            await File(selectedCustomPath).exists()
-        ? selectedCustomPath
-        : null;
-    final sound = isAdhan && StorageService.getAdhanEnabled()
+    final selectedCustomPath = isAdhan
+        ? prayer == FardPrayer.fajr
+            ? StorageService.getSelectedFajrAdhanPath()
+            : StorageService.getSelectedRegularAdhanPath()
+        : StorageService.getNotificationSoundPath();
+    final customPath =
+        selectedCustomPath != null && await File(selectedCustomPath).exists()
+            ? selectedCustomPath
+            : null;
+    final sound = isAdhan && StorageService.getAdhanEnabled() ||
+            !isAdhan && customPath != null
         ? customPath == null
             ? RawResourceAndroidNotificationSound(
                 prayer == FardPrayer.fajr ? 'adhan_fajr' : 'adhan_regular')
@@ -266,14 +294,21 @@ class NotificationService {
                 ? _fajrChannelId
                 : _regularChannelId
             : _customChannelId(
-                prayer == FardPrayer.fajr ? 'prayer_fajr' : 'prayer_regular',
+                isAdhan ? 'prayer_adhan' : 'prayer_notification',
                 customPath,
               );
     if (customPath != null && sound != null) {
       await _createCustomChannel(
         channelId: channelId,
-        name: prayer == FardPrayer.fajr ? 'أذان فجر مخصص' : 'أذان مخصص',
+        name: isAdhan
+            ? prayer == FardPrayer.fajr
+                ? 'أذان فجر مخصص'
+                : 'أذان مخصص'
+            : 'صوت إشعارات مخصص',
         path: customPath,
+        audioUsage: isAdhan
+            ? AudioAttributesUsage.alarm
+            : AudioAttributesUsage.notification,
       );
     }
     final androidDetails = AndroidNotificationDetails(
@@ -282,8 +317,16 @@ class NotificationService {
       channelDescription: 'إشعارات دخول أوقات الصلاة',
       importance: Importance.max,
       priority: Priority.high,
+      category: sound == null
+          ? AndroidNotificationCategory.reminder
+          : AndroidNotificationCategory.alarm,
       playSound: sound != null,
       sound: sound,
+      audioAttributesUsage: sound == null
+          ? AudioAttributesUsage.notification
+          : isAdhan
+              ? AudioAttributesUsage.alarm
+              : AudioAttributesUsage.notification,
     );
     final iosDetails = DarwinNotificationDetails(
       presentSound: StorageService.getAdhanEnabled(),

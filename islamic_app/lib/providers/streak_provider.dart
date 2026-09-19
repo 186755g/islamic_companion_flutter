@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import '../models/streak_model.dart';
 import '../services/storage_service.dart';
+import '../services/hadith_widget_service.dart';
 
 class StreakProvider extends ChangeNotifier {
   late StreakModel _streak;
@@ -43,6 +44,7 @@ class StreakProvider extends ChangeNotifier {
       _streak.longestStreak = _streak.currentStreak;
     }
     await StorageService.saveStreak(_streak);
+    await HadithWidgetService.update();
     _celebratedToday = true;
     notifyListeners();
   }

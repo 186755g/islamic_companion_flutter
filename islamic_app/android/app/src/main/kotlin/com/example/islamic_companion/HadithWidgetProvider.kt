@@ -17,19 +17,34 @@ class HadithWidgetProvider : HomeWidgetProvider() {
       widgetData: SharedPreferences,
   ) {
     val count = widgetData.getInt("hadith_count", 0)
-    if (count == 0) return
-
     val start = LocalDate.of(LocalDate.now().year, 1, 1)
     val dayIndex = ChronoUnit.DAYS.between(start, LocalDate.now()).toInt()
-    val index = Math.floorMod(dayIndex, count)
+    val index = if (count == 0) 0 else Math.floorMod(dayIndex, count)
     val text = widgetData.getString("hadith_${index}_text", "حديث اليوم") ?: "حديث اليوم"
     val source = widgetData.getString("hadith_${index}_source", "") ?: ""
     val narrator = widgetData.getString("hadith_${index}_narrator", "") ?: ""
+    val currentStreak = widgetData.getInt("streak_current", 0)
+    val longestStreak = widgetData.getInt("streak_longest", 0)
+    val totalActiveDays = widgetData.getInt("streak_total_days", 0)
+    val activeToday = widgetData.getBoolean("streak_active_today", false)
 
     appWidgetIds.forEach { widgetId ->
       val views = RemoteViews(context.packageName, R.layout.hadith_widget).apply {
         setTextViewText(R.id.widget_hadith_text, text)
         setTextViewText(R.id.widget_hadith_source, "$source — $narrator")
+        setTextViewText(
+            R.id.widget_streak_value,
+            if (currentStreak == 0) "ابدأ استريكك اليوم" else "$currentStreak يوم متواصل"
+        )
+        setTextViewText(
+            R.id.widget_streak_meta,
+            if (activeToday) {
+              "تم تسجيل نشاط اليوم • أطول استريك: $longestStreak يوم"
+            } else {
+              "لم تسجل نشاط اليوم • إجمالي الأيام: $totalActiveDays"
+            }
+        )
+        setProgressBar(R.id.widget_streak_progress, 7, Math.min(currentStreak, 7), false)
         val launchIntent =
             HomeWidgetLaunchIntent.getActivity(context, MainActivity::class.java)
         setOnClickPendingIntent(R.id.widget_hadith_container, launchIntent)

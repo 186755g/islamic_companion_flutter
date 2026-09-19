@@ -20,8 +20,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _selectedGovernorate;
   bool _adhanEnabled = true;
   double _adhanVolume = 1.0;
-  String? _fajrAdhanPath;
-  String? _regularAdhanPath;
+  List<String> _fajrAdhanPaths = [];
+  List<String> _regularAdhanPaths = [];
+  String? _selectedFajrAdhanPath;
+  String? _selectedRegularAdhanPath;
+  String? _notificationSoundPath;
+  String _prayerCardAnimation = 'slide';
   bool _savingAdhanSettings = false;
   final _audioPlayer = AudioPlayer();
   final _searchController = TextEditingController();
@@ -31,8 +35,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _adhanEnabled = StorageService.getAdhanEnabled();
     _adhanVolume = StorageService.getAdhanVolume();
-    _fajrAdhanPath = StorageService.getFajrAdhanPath();
-    _regularAdhanPath = StorageService.getRegularAdhanPath();
+    _fajrAdhanPaths = StorageService.getFajrAdhanPaths();
+    _regularAdhanPaths = StorageService.getRegularAdhanPaths();
+    _selectedFajrAdhanPath = StorageService.getSelectedFajrAdhanPath();
+    _selectedRegularAdhanPath = StorageService.getSelectedRegularAdhanPath();
+    _notificationSoundPath = StorageService.getNotificationSoundPath();
+    _prayerCardAnimation = StorageService.getPrayerCardAnimation();
   }
 
   @override
@@ -101,10 +109,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _setAdhanEnabled(bool enabled) async {
     setState(() => _adhanEnabled = enabled);
+    try {
+      await StorageService.setAdhanEnabled(enabled);
+      if (!mounted) return;
+      final times = context.read<PrayerProvider>().times;
+      if (times != null) {
+        await NotificationService.scheduleDailyPrayerNotifications(times);
+      }
+    } catch (error, stackTrace) {
+      debugPrint('Failed to toggle adhan sound: $error\n$stackTrace');
+      if (mounted) {
+        setState(() => _adhanEnabled = !enabled);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تعذر تحديث حالة صوت الأذان')),
+        );
+      }
+    }
   }
 
   Future<void> _setAdhanVolume(double value) async {
     setState(() => _adhanVolume = value);
+  }
+
+  Future<void> _setPrayerCardAnimation(String? value) async {
+    if (value == null) return;
+    setState(() => _prayerCardAnimation = value);
+    await StorageService.setPrayerCardAnimation(value);
   }
 
   Future<void> _pickAdhanFile({required bool fajr}) async {
@@ -114,11 +144,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final path = result.isEmpty ? null : result.first.path;
     if (path == null || path.isEmpty) return;
 
-    if (fajr) {
-      setState(() => _fajrAdhanPath = path);
-    } else {
-      setState(() => _regularAdhanPath = path);
+    setState(() {
+      final paths = fajr ? _fajrAdhanPaths : _regularAdhanPaths;
+      if (!paths.contains(path)) paths.add(path);
+      if (fajr) {
+        _selectedFajrAdhanPath = path;
+      } else {
+        _selectedRegularAdhanPath = path;
+      }
+    });
+  }
+
+  Future<void> _pickNotificationSound() async {
+    final result = await FilePicker.pickFiles(type: FileType.audio);
+    final path = result.isEmpty ? null : result.first.path;
+    if (path != null && path.isNotEmpty) {
+      setState(() => _notificationSoundPath = path);
     }
+  }
+
+  void _removeAdhanFile({required bool fajr, required String path}) {
+    setState(() {
+      final paths = fajr ? _fajrAdhanPaths : _regularAdhanPaths;
+      paths.remove(path);
+      if (fajr) {
+        _selectedFajrAdhanPath = paths.isEmpty
+            ? null
+            : (_selectedFajrAdhanPath == path
+                ? paths.first
+                : _selectedFajrAdhanPath);
+      } else {
+        _selectedRegularAdhanPath = paths.isEmpty
+            ? null
+            : (_selectedRegularAdhanPath == path
+                ? paths.first
+                : _selectedRegularAdhanPath);
+      }
+    });
   }
 
   Future<void> _saveAdhanSettings() async {
@@ -126,8 +188,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       await StorageService.setAdhanEnabled(_adhanEnabled);
       await StorageService.setAdhanVolume(_adhanVolume);
-      await StorageService.setFajrAdhanPath(_fajrAdhanPath);
-      await StorageService.setRegularAdhanPath(_regularAdhanPath);
+      await StorageService.setFajrAdhanPaths(_fajrAdhanPaths);
+      await StorageService.setRegularAdhanPaths(_regularAdhanPaths);
+      await StorageService.setSelectedFajrAdhanPath(_selectedFajrAdhanPath);
+      await StorageService.setSelectedRegularAdhanPath(
+          _selectedRegularAdhanPath);
+      await StorageService.setNotificationSoundPath(_notificationSoundPath);
 
       if (!mounted) return;
       final times = context.read<PrayerProvider>().times;
@@ -167,6 +233,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _togglePreview(String? path, {required bool fajr}) async {
+    if (_audioPlayer.state == PlayerState.playing) {
+      await _audioPlayer.stop();
+      if (mounted) setState(() {});
+      return;
+    }
+    await _previewAdhan(path, fajr: fajr);
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _toggleNotificationPreview() async {
+    if (_audioPlayer.state == PlayerState.playing) {
+      await _audioPlayer.stop();
+    } else if (_notificationSoundPath != null) {
+      await _audioPlayer.play(DeviceFileSource(_notificationSoundPath!));
+    }
+    if (mounted) setState(() {});
+  }
+
   Future<void> _openContact(Uri uri, String errorMessage) async {
     final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!opened && mounted) {
@@ -183,8 +268,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _selectedGovernorate ?? prayer.selectedGovernorate ?? 'اختر المحافظة';
     final showLocationSection = _matches('الموقع مواقيت الصلاة مصر المحافظة');
     final showAudioSection = _matches('الصوت الإشعارات الأذان الفجر');
+    final showPrayerDisplaySection = _matches(
+      'شكل حركة التقليب الصلاة الصلوات الأسهم البطاقة',
+    );
     final showRightsSection = _matches(
-      'حقوق التطبيق صانع البرنامج المطور محمد احمد التواصل البريد الهاتف واتساب',
+      'حقوق التطبيق صانع البرنامج المطور محمد احمد التواصل البريد واتساب',
     );
 
     return Scaffold(
@@ -333,16 +421,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       trailing: Text('${(_adhanVolume * 100).round()}%'),
                     ),
                     const Divider(height: 1),
-                    _adhanFileTile(
-                      title: 'أذان الفجر',
-                      path: _fajrAdhanPath,
+                    _soundLibrarySection(
+                      title: 'أصوات أذان الفجر',
+                      paths: _fajrAdhanPaths,
+                      selectedPath: _selectedFajrAdhanPath,
                       fajr: true,
                     ),
-                    _adhanFileTile(
-                      title: 'أذان باقي الصلوات',
-                      path: _regularAdhanPath,
+                    _soundLibrarySection(
+                      title: 'أصوات أذان باقي الصلوات',
+                      paths: _regularAdhanPaths,
+                      selectedPath: _selectedRegularAdhanPath,
                       fajr: false,
                     ),
+                    _notificationSoundTile(),
                     const Padding(
                       padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
                       child: Text(
@@ -372,6 +463,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                   ],
+                ),
+              ),
+            ),
+          ],
+          if (showPrayerDisplaySection) ...[
+            const SizedBox(height: 24),
+            _sectionTitle(context, 'عرض بطاقات الصلاة', Icons.view_carousel),
+            const SizedBox(height: 8),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: DropdownButtonFormField<String>(
+                  initialValue: _prayerCardAnimation,
+                  decoration: const InputDecoration(
+                    labelText: 'حركة التقليب بين الصلوات',
+                    prefixIcon: Icon(Icons.animation),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'slide',
+                      child: Text('انزلاق سلس مع تلاشي'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'fade',
+                      child: Text('تلاشي ناعم'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'scale',
+                      child: Text('تكبير لطيف'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'rotation',
+                      child: Text('دوران خفيف'),
+                    ),
+                  ],
+                  onChanged: _setPrayerCardAnimation,
                 ),
               ),
             ),
@@ -439,16 +566,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                       _contactTile(
-                        icon: Icons.phone_outlined,
-                        color: Colors.blue,
-                        title: 'الهاتف',
-                        subtitle: '01040937964',
-                        onTap: () => _openContact(
-                          Uri(scheme: 'tel', path: '01040937964'),
-                          'تعذر فتح تطبيق الاتصال',
-                        ),
-                      ),
-                      _contactTile(
                         icon: Icons.chat_rounded,
                         color: const Color(0xFF25D366),
                         title: 'واتساب',
@@ -491,32 +608,120 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _adhanFileTile({
+  Widget _soundLibrarySection({
     required String title,
-    required String? path,
+    required List<String> paths,
+    required String? selectedPath,
     required bool fajr,
   }) {
-    final fileName = path == null
-        ? 'الصوت الافتراضي للتطبيق'
-        : path.split(RegExp(r'[/\\]')).last;
-    return ListTile(
-      leading: Icon(fajr ? Icons.nightlight_round : Icons.mosque),
-      title: Text(title),
-      subtitle: Text(fileName, maxLines: 1, overflow: TextOverflow.ellipsis),
-      trailing: Wrap(
-        spacing: 0,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          IconButton(
-            tooltip: 'تجربة الصوت',
-            icon: const Icon(Icons.play_arrow),
-            onPressed: () => _previewAdhan(path, fajr: fajr),
+          Row(
+            children: [
+              Expanded(
+                child: Text(title,
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              IconButton(
+                tooltip: 'إضافة صوت',
+                onPressed: () => _pickAdhanFile(fajr: fajr),
+                icon: const Icon(Icons.add_circle_outline,
+                    color: AppColors.deepGreen),
+              ),
+            ],
           ),
-          IconButton(
-            tooltip: 'اختيار ملف صوتي',
-            icon: const Icon(Icons.upload_file),
-            onPressed: () => _pickAdhanFile(fajr: fajr),
-          ),
+          if (paths.isEmpty)
+            Text('لم تتم إضافة أصوات مخصصة',
+                textAlign: TextAlign.right,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12))
+          else
+            ...paths.map(
+              (path) => ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text(path.split(RegExp(r'[/\\]')).last,
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+                trailing: IconButton(
+                  tooltip: 'تشغيل / إيقاف',
+                  icon: Icon(
+                    _audioPlayer.state == PlayerState.playing &&
+                            (fajr
+                                    ? _selectedFajrAdhanPath
+                                    : _selectedRegularAdhanPath) ==
+                                path
+                        ? Icons.stop_circle_outlined
+                        : Icons.play_circle_outline,
+                    color: AppColors.gold,
+                  ),
+                  onPressed: () => _togglePreview(path, fajr: fajr),
+                ),
+                onTap: () {
+                  setState(() {
+                    if (fajr) {
+                      _selectedFajrAdhanPath = path;
+                    } else {
+                      _selectedRegularAdhanPath = path;
+                    }
+                  });
+                },
+                subtitle: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (selectedPath == path)
+                      const Text('مستخدم حاليًا',
+                          style: TextStyle(
+                              color: AppColors.success, fontSize: 11)),
+                    TextButton(
+                      onPressed: () => _removeAdhanFile(fajr: fajr, path: path),
+                      child: const Text('حذف الصوت'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
+      ),
+    );
+  }
+
+  Widget _notificationSoundTile() {
+    final name = _notificationSoundPath == null
+        ? 'بدون صوت مخصص'
+        : _notificationSoundPath!.split(RegExp(r'[/\\]')).last;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+      child: Card(
+        margin: EdgeInsets.zero,
+        color: AppColors.softGreen.withValues(alpha: .55),
+        child: ListTile(
+          leading: const Icon(Icons.notifications_active_outlined,
+              color: AppColors.deepGreen),
+          title: const Text('صوت الإشعارات',
+              textAlign: TextAlign.right,
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          subtitle: Text(name,
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
+          trailing: IconButton(
+            tooltip: 'تشغيل / إيقاف أو اختيار صوت',
+            onPressed: _notificationSoundPath == null
+                ? _pickNotificationSound
+                : _toggleNotificationPreview,
+            icon: Icon(
+              _audioPlayer.state == PlayerState.playing
+                  ? Icons.stop_circle_outlined
+                  : Icons.audio_file_outlined,
+            ),
+          ),
+          onTap: _pickNotificationSound,
+        ),
       ),
     );
   }

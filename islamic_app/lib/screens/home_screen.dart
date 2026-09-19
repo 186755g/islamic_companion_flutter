@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/prayer_model.dart';
 import '../providers/points_provider.dart';
 import '../providers/prayer_provider.dart';
+import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/streak_lantern_card.dart';
 import '../widgets/hadith_of_the_day_card.dart';
@@ -41,9 +42,12 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             tooltip: 'الإعدادات',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
-            ),
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+              if (mounted) setState(() {});
+            },
           ),
         ],
       ),
@@ -252,8 +256,15 @@ class _AnimatedNavItemState extends State<_AnimatedNavItem> {
   }
 }
 
-class _PrayerHomeTab extends StatelessWidget {
+class _PrayerHomeTab extends StatefulWidget {
   const _PrayerHomeTab();
+
+  @override
+  State<_PrayerHomeTab> createState() => _PrayerHomeTabState();
+}
+
+class _PrayerHomeTabState extends State<_PrayerHomeTab> {
+  int _selectedPrayerIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -272,6 +283,8 @@ class _PrayerHomeTab extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
           child: Column(
             children: [
+              const HadithOfTheDayCard(),
+              const SizedBox(height: 14),
               _PrayerDashboardHero(prayerProv: prayerProv),
               const SizedBox(height: 14),
               if (prayerProv.locationNotice != null) ...[
@@ -298,15 +311,124 @@ class _PrayerHomeTab extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              ...FardPrayer.values.map((f) => _FardCard(prayer: f)),
+              _PrayerCardPager(
+                selectedIndex: _selectedPrayerIndex,
+                onIndexChanged: (index) =>
+                    setState(() => _selectedPrayerIndex = index),
+              ),
               const SizedBox(height: 8),
               const StreakLanternCard(),
               const SizedBox(height: 12),
               _WeeklyPointsCard(pointsProv: pointsProv),
-              const SizedBox(height: 12),
-              const HadithOfTheDayCard(),
             ],
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PrayerCardPager extends StatefulWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onIndexChanged;
+
+  const _PrayerCardPager({
+    required this.selectedIndex,
+    required this.onIndexChanged,
+  });
+
+  @override
+  State<_PrayerCardPager> createState() => _PrayerCardPagerState();
+}
+
+class _PrayerCardPagerState extends State<_PrayerCardPager> {
+  late String _animationStyle;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationStyle = StorageService.getPrayerCardAnimation();
+  }
+
+  Widget _transition(Widget child, Animation<double> animation) {
+    final curved =
+        CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+    switch (_animationStyle) {
+      case 'fade':
+        return FadeTransition(opacity: curved, child: child);
+      case 'scale':
+        return ScaleTransition(
+          scale: Tween(begin: .86, end: 1.0).animate(curved),
+          child: child,
+        );
+      case 'rotation':
+        return RotationTransition(
+          turns: Tween(begin: -.015, end: 0.0).animate(curved),
+          child: child,
+        );
+      case 'slide':
+      default:
+        return SlideTransition(
+          position: Tween(begin: const Offset(.18, 0), end: Offset.zero)
+              .animate(curved),
+          child: FadeTransition(opacity: curved, child: child),
+        );
+    }
+  }
+
+  void _move(int delta) {
+    final next = widget.selectedIndex + delta;
+    if (next < 0 || next >= FardPrayer.values.length) return;
+    widget.onIndexChanged(next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _animationStyle = StorageService.getPrayerCardAnimation();
+    final prayer = FardPrayer.values[widget.selectedIndex];
+    return Column(
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            'علّم على الصلاة',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            IconButton(
+              tooltip: 'الصلاة السابقة',
+              onPressed: widget.selectedIndex == 0 ? null : () => _move(-1),
+              icon: const Icon(Icons.arrow_forward_ios_rounded),
+            ),
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 520),
+                reverseDuration: const Duration(milliseconds: 320),
+                switchInCurve: Curves.easeOutBack,
+                switchOutCurve: Curves.easeIn,
+                transitionBuilder: _transition,
+                child: KeyedSubtree(
+                  key: ValueKey(prayer),
+                  child: _FardCard(prayer: prayer),
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: 'الصلاة التالية',
+              onPressed: widget.selectedIndex == FardPrayer.values.length - 1
+                  ? null
+                  : () => _move(1),
+              icon: const Icon(Icons.arrow_back_ios_rounded),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '${widget.selectedIndex + 1} من ${FardPrayer.values.length}',
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
         ),
       ],
     );
@@ -672,22 +794,135 @@ class _LibraryTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
       children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColors.deepGreen, AppColors.mediumGreen],
+              begin: Alignment.topRight,
+              end: Alignment.bottomLeft,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.deepGreen.withValues(alpha: .16),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.local_library_rounded,
+                  color: AppColors.lightGold,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'المكتبة الإسلامية',
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      'اقرأ، تأمل، واستلهم من كنوز الهداية',
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 26),
+        const Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            'استكشف المحتوى',
+            style: TextStyle(
+              color: AppColors.textDark,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            'مصادر مختارة لرحلة يومية أكثر قربًا وطمأنينة',
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+          ),
+        ),
+        const SizedBox(height: 14),
         _LibraryTile(
           icon: Icons.auto_stories,
           title: 'أحاديث المعاملات والأخلاق',
-          subtitle: 'مكتبة أحاديث صحيحة في حسن الخلق والمعاملات، مع بحث وتصنيف',
+          subtitle: 'أحاديث مختارة في حسن الخلق والمعاملات، مع البحث والتصنيف.',
+          tag: 'أحاديث',
+          accent: const Color(0xFFB78916),
           onTap: () => Navigator.of(context)
               .push(MaterialPageRoute(builder: (_) => const HadithScreen())),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         _LibraryTile(
           icon: Icons.groups,
           title: 'قصص الأنبياء والصحابة',
-          subtitle: 'سِيَر موثقة للأنبياء والصحابة الكرام رضوان الله عليهم',
+          subtitle: 'سِيَر وقصص موثقة تحمل دروسًا ملهمة من حياة الصالحين.',
+          tag: 'قصص وسِيَر',
+          accent: const Color(0xFF557C68),
           onTap: () => Navigator.of(context)
               .push(MaterialPageRoute(builder: (_) => const StoriesScreen())),
+        ),
+        const SizedBox(height: 18),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.softGreen.withValues(alpha: .72),
+            borderRadius: BorderRadius.circular(18),
+            border:
+                Border.all(color: AppColors.deepGreen.withValues(alpha: .08)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.lightbulb_outline, color: AppColors.gold),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'خصص دقائق قليلة كل يوم للقراءة والتدبر.',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    color: AppColors.textDark.withValues(alpha: .82),
+                    fontSize: 13,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -698,32 +933,88 @@ class _LibraryTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
+  final String tag;
+  final Color accent;
   final VoidCallback onTap;
+
   const _LibraryTile(
       {required this.icon,
       required this.title,
       required this.subtitle,
+      required this.tag,
+      required this.accent,
       required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(14),
-        leading: CircleAvatar(
-            backgroundColor: AppColors.deepGreen,
-            child: Icon(icon, color: AppColors.gold)),
-        title: Text(title,
-            textAlign: TextAlign.right,
-            style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(subtitle,
-              textAlign: TextAlign.right,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-        ),
-        trailing: const Icon(Icons.chevron_left),
+      margin: EdgeInsets.zero,
+      elevation: 1,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(Icons.chevron_left_rounded, color: accent, size: 26),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 9, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: .1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        tag,
+                        style: TextStyle(
+                          color: accent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 9),
+                    Text(
+                      title,
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        color: AppColors.textDark,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      subtitle,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                        height: 1.55,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Icon(icon, color: accent, size: 29),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
