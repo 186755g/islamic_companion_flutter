@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 import '../data/hadith_data.dart';
 import 'storage_service.dart';
@@ -29,6 +30,12 @@ class HadithWidgetService {
         'streak_active_today',
         streak.lastActiveDate ==
             DateTime.now().toIso8601String().substring(0, 10));
-    await HomeWidget.updateWidget(name: widgetName);
+    try {
+      await HomeWidget.updateWidget(name: widgetName);
+    } catch (error, stackTrace) {
+      // A widget may not be pinned yet or the launcher may be unavailable.
+      // Keep app features working while making the update failure diagnosable.
+      debugPrint('Hadith widget update request failed: $error\n$stackTrace');
+    }
   }
 }

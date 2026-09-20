@@ -420,6 +420,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       trailing: Text('${(_adhanVolume * 100).round()}%'),
                     ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.lightGold.withValues(alpha: .22),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.volume_up_rounded,
+                                color: AppColors.deepGreen),
+                            const SizedBox(width: 10),
+                            const Expanded(
+                              child: Text(
+                                'لكي يعمل الأذان تلقائيًا في الخلفية وحتى مع الصامت، اسمح للتطبيق بتجاوز وضع عدم الإزعاج من إعدادات الهاتف.',
+                                textAlign: TextAlign.right,
+                                style: TextStyle(fontSize: 12, height: 1.5),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            TextButton(
+                              onPressed: () async {
+                                try {
+                                  final opened = await NotificationService
+                                      .requestBackgroundAdhanAccess();
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(opened
+                                          ? 'فعّل السماح للتطبيق بتجاوز عدم الإزعاج، ثم ارجع للتطبيق.'
+                                          : 'افتح إعدادات الإشعارات واسمح للتطبيق بتشغيل الأذان في الخلفية.'),
+                                    ),
+                                  );
+                                } catch (error, stackTrace) {
+                                  debugPrint(
+                                      'Failed to open adhan access settings: '
+                                      '$error\n$stackTrace');
+                                }
+                              },
+                              child: const Text('السماح'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     const Divider(height: 1),
                     _soundLibrarySection(
                       title: 'أصوات أذان الفجر',

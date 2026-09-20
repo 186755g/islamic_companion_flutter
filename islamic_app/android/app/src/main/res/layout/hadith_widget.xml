@@ -5,7 +5,9 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_hadith_background"
     android:gravity="center_vertical"
+    android:layoutDirection="rtl"
     android:orientation="vertical"
+    android:textDirection="rtl"
     android:padding="16dp">
 
     <LinearLayout

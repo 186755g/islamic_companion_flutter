@@ -23,6 +23,9 @@ class HadithWidgetProvider : HomeWidgetProvider() {
     val text = widgetData.getString("hadith_${index}_text", "حديث اليوم") ?: "حديث اليوم"
     val source = widgetData.getString("hadith_${index}_source", "") ?: ""
     val narrator = widgetData.getString("hadith_${index}_narrator", "") ?: ""
+    val attribution = listOf(source, narrator)
+        .filter { it.isNotBlank() }
+        .joinToString(" — ")
     val currentStreak = widgetData.getInt("streak_current", 0)
     val longestStreak = widgetData.getInt("streak_longest", 0)
     val totalActiveDays = widgetData.getInt("streak_total_days", 0)
@@ -31,7 +34,7 @@ class HadithWidgetProvider : HomeWidgetProvider() {
     appWidgetIds.forEach { widgetId ->
       val views = RemoteViews(context.packageName, R.layout.hadith_widget).apply {
         setTextViewText(R.id.widget_hadith_text, text)
-        setTextViewText(R.id.widget_hadith_source, "$source — $narrator")
+        setTextViewText(R.id.widget_hadith_source, attribution)
         setTextViewText(
             R.id.widget_streak_value,
             if (currentStreak == 0) "ابدأ استريكك اليوم" else "$currentStreak يوم متواصل"

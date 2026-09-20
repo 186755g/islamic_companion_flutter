@@ -8,6 +8,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:http/http.dart' as http;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tzdata;
+import 'package:flutter/services.dart';
 import '../models/prayer_model.dart';
 import 'storage_service.dart';
 
@@ -24,6 +25,21 @@ class NotificationService {
   static bool _exactAlarmsAllowed = false;
 
   static bool get isInitialized => _initialized;
+  static const _nativeChannel =
+      MethodChannel('com.example.islamic_companion/adhan');
+
+  static Future<bool> requestBackgroundAdhanAccess() async {
+    if (!Platform.isAndroid) return false;
+    try {
+      await _nativeChannel.invokeMethod<void>('prepareAdhanChannels');
+      await _nativeChannel.invokeMethod<void>('openAdhanPolicySettings');
+    } on PlatformException catch (error, stackTrace) {
+      debugPrint(
+          'Failed to open Android adhan access settings: $error\n$stackTrace');
+      return false;
+    }
+    return true;
+  }
 
   // These channel IDs are intentionally versioned. Android persists channel
   // settings, so changing the audio usage on an existing channel has no effect.
@@ -54,6 +70,14 @@ class NotificationService {
     _exactAlarmsAllowed =
         await androidImpl?.canScheduleExactNotifications() ?? false;
     await _createNotificationChannels(androidImpl);
+    if (Platform.isAndroid) {
+      try {
+        await _nativeChannel.invokeMethod<void>('prepareAdhanChannels');
+      } on PlatformException catch (error, stackTrace) {
+        debugPrint(
+            'Failed to prepare Android adhan channels: $error\n$stackTrace');
+      }
+    }
     _initialized = true;
   }
 
