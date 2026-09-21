@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/prayer_model.dart';
 import '../models/streak_model.dart';
@@ -12,6 +13,10 @@ class StorageService {
   static const String streakBox = 'streak_box';
   static const String quranBox = 'quran_box';
   static const String khatmahBox = 'khatmah_box';
+  static final ValueNotifier<double> fontScaleNotifier =
+      ValueNotifier<double>(1.0);
+  static final ValueNotifier<bool> darkModeNotifier =
+      ValueNotifier<bool>(false);
 
   static Future<void> init() async {
     await Hive.initFlutter();
@@ -22,6 +27,8 @@ class StorageService {
     await Hive.openBox(streakBox);
     await Hive.openBox(quranBox);
     await Hive.openBox(khatmahBox);
+    fontScaleNotifier.value = getFontScale();
+    darkModeNotifier.value = getDarkMode();
   }
 
   // ---------- Azkar progress ----------
@@ -90,6 +97,22 @@ class StorageService {
 
   static Future<void> setAdhanVolume(double volume) =>
       _settings.put('adhan_volume', volume.clamp(0.0, 1.0));
+
+  static double getFontScale() =>
+      (_settings.get('font_scale') as num?)?.toDouble() ?? 1.0;
+
+  static Future<void> setFontScale(double scale) async {
+    final safeScale = scale.clamp(0.85, 1.35).toDouble();
+    await _settings.put('font_scale', safeScale);
+    fontScaleNotifier.value = safeScale;
+  }
+
+  static bool getDarkMode() => (_settings.get('dark_mode') as bool?) ?? false;
+
+  static Future<void> setDarkMode(bool enabled) async {
+    await _settings.put('dark_mode', enabled);
+    darkModeNotifier.value = enabled;
+  }
 
   static String getPrayerCardAnimation() =>
       (_settings.get('prayer_card_animation') as String?) ?? 'slide';

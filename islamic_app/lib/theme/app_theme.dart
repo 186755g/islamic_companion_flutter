@@ -82,4 +82,80 @@ class AppTheme {
       ),
     );
   }
+
+  static ThemeData get darkTheme {
+    const darkBackground = Color(0xFF121A16);
+    const darkSurface = Color(0xFF1C2822);
+    const darkText = Color(0xFFF5F1E8);
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: darkBackground,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: AppColors.deepGreen,
+        brightness: Brightness.dark,
+        primary: AppColors.lightGold,
+        secondary: AppColors.gold,
+        surface: darkSurface,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: AppColors.deepGreen,
+        foregroundColor: AppColors.ivory,
+        elevation: 0,
+        centerTitle: true,
+        titleTextStyle: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: AppColors.ivory,
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: darkSurface,
+        elevation: 1.5,
+        shadowColor: Colors.black54,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.gold.withValues(alpha: 0.25)),
+        ),
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.lightGold,
+          foregroundColor: AppColors.deepGreen,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+      ),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: AppColors.lightGold,
+      ),
+      navigationBarTheme: const NavigationBarThemeData(
+        height: 72,
+        backgroundColor: darkSurface,
+        indicatorColor: AppColors.deepGreen,
+        labelTextStyle: WidgetStatePropertyAll(
+          TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+      ),
+      dividerTheme: DividerThemeData(
+        color: AppColors.gold.withValues(alpha: 0.25),
+        thickness: 1,
+        space: 1,
+      ),
+      textTheme: const TextTheme(
+        headlineSmall: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: darkText,
+        ),
+        titleMedium: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: darkText,
+        ),
+        bodyMedium: TextStyle(color: darkText, height: 1.6),
+      ),
+    );
+  }
 }

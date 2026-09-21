@@ -24,7 +24,10 @@ Future<void> main() async {
     debugPrint('Hadith widget update failed: $error\n$stackTrace');
   }
   try {
-    await NotificationService.init().timeout(const Duration(seconds: 5));
+    // Initialization can wait for Android permission dialogs. A short timeout
+    // would let the app start with an uninitialized scheduler, so prayer
+    // notifications would never be created for that session.
+    await NotificationService.init();
   } catch (error, stackTrace) {
     debugPrint('Notification initialization failed: $error\n$stackTrace');
   }
@@ -56,16 +59,32 @@ class IslamicCompanionApp extends StatelessWidget {
               previous ?? PrayerProvider(pointsProvider: points),
         ),
       ],
-      child: MaterialApp(
-        title: 'رفيق المسلم',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.theme,
-        locale: const Locale('ar'),
-        builder: (context, child) {
-          return Directionality(
-              textDirection: TextDirection.rtl, child: child!);
-        },
-        home: const HomeScreen(),
+      child: ValueListenableBuilder<double>(
+        valueListenable: StorageService.fontScaleNotifier,
+        builder: (context, fontScale, _) => ValueListenableBuilder<bool>(
+          valueListenable: StorageService.darkModeNotifier,
+          builder: (context, darkMode, _) => MaterialApp(
+            title: 'رفيق المسلم',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.theme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: darkMode ? ThemeMode.dark : ThemeMode.light,
+            locale: const Locale('ar'),
+            builder: (context, child) {
+              final mediaQuery = MediaQuery.of(context);
+              return MediaQuery(
+                data: mediaQuery.copyWith(
+                  textScaler: TextScaler.linear(fontScale),
+                ),
+                child: Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: child!,
+                ),
+              );
+            },
+            home: const HomeScreen(),
+          ),
+        ),
       ),
     );
   }

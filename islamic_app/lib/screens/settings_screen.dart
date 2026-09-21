@@ -26,7 +26,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _selectedRegularAdhanPath;
   String? _notificationSoundPath;
   String _prayerCardAnimation = 'slide';
+  double _fontScale = 1.0;
+  bool _darkMode = false;
   bool _savingAdhanSettings = false;
+  AdhanStatus? _adhanStatus;
   final _audioPlayer = AudioPlayer();
   final _searchController = TextEditingController();
 
@@ -41,6 +44,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _selectedRegularAdhanPath = StorageService.getSelectedRegularAdhanPath();
     _notificationSoundPath = StorageService.getNotificationSoundPath();
     _prayerCardAnimation = StorageService.getPrayerCardAnimation();
+    _fontScale = StorageService.getFontScale();
+    _darkMode = StorageService.getDarkMode();
+    _refreshAdhanStatus();
+    Future<void>.delayed(const Duration(seconds: 2), _refreshAdhanStatus);
+  }
+
+  Future<void> _refreshAdhanStatus() async {
+    final status = await NotificationService.getAdhanStatus();
+    if (mounted) setState(() => _adhanStatus = status);
+  }
+
+  void _showAdhanStatus() {
+    final status = _adhanStatus;
+    if (status == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(status.message),
+        backgroundColor:
+            status.isHealthy ? AppColors.deepGreen : Colors.red.shade700,
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   @override
@@ -116,6 +141,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (times != null) {
         await NotificationService.scheduleDailyPrayerNotifications(times);
       }
+      await _refreshAdhanStatus();
     } catch (error, stackTrace) {
       debugPrint('Failed to toggle adhan sound: $error\n$stackTrace');
       if (mounted) {
@@ -135,6 +161,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (value == null) return;
     setState(() => _prayerCardAnimation = value);
     await StorageService.setPrayerCardAnimation(value);
+  }
+
+  Future<void> _setFontScale(double value) async {
+    setState(() => _fontScale = value);
+    await StorageService.setFontScale(value);
+  }
+
+  Future<void> _setDarkMode(bool enabled) async {
+    setState(() => _darkMode = enabled);
+    await StorageService.setDarkMode(enabled);
   }
 
   Future<void> _pickAdhanFile({required bool fajr}) async {
@@ -200,6 +236,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (times != null) {
         await NotificationService.scheduleDailyPrayerNotifications(times);
       }
+      await _refreshAdhanStatus();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -389,7 +426,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
           if (showAudioSection) ...[
             const SizedBox(height: 24),
-            _sectionTitle(context, 'الصوت والإشعارات', Icons.notifications),
+            Row(
+              children: [
+                Expanded(
+                  child: _sectionTitle(
+                      context, 'الصوت والإشعارات', Icons.notifications),
+                ),
+                GestureDetector(
+                  onTap: _showAdhanStatus,
+                  child: Semantics(
+                    button: true,
+                    label: 'حالة صوت الأذان',
+                    child: Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: _adhanStatus == null
+                            ? Colors.grey
+                            : _adhanStatus!.isHealthy
+                                ? Colors.green
+                                : Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ),
             const SizedBox(height: 8),
             Card(
               child: Padding(
@@ -549,6 +613,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ],
+          const SizedBox(height: 24),
+          _sectionTitle(context, 'حجم خط التطبيق', Icons.format_size),
+          const SizedBox(height: 8),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('صغير'),
+                      Text(
+                        '${(_fontScale * 100).round()}%',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const Text('كبير جدًا'),
+                    ],
+                  ),
+                  Slider(
+                    value: _fontScale,
+                    min: 0.85,
+                    max: 1.35,
+                    divisions: 10,
+                    label: '${(_fontScale * 100).round()}%',
+                    onChanged: _setFontScale,
+                  ),
+                  const Text(
+                    'يتغير حجم النص في جميع شاشات التطبيق فورًا.',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          _sectionTitle(context, 'مظهر التطبيق', Icons.palette_outlined),
+          const SizedBox(height: 8),
+          Card(
+            child: SwitchListTile.adaptive(
+              value: _darkMode,
+              onChanged: _setDarkMode,
+              secondary: Icon(
+                _darkMode ? Icons.dark_mode : Icons.light_mode,
+              ),
+              title: const Text('الوضع الداكن'),
+              subtitle: Text(
+                _darkMode ? 'تم تفعيل الوضع الداكن' : 'استخدم الألوان الفاتحة',
+              ),
+            ),
+          ),
           if (showRightsSection) ...[
             const SizedBox(height: 24),
             _sectionTitle(

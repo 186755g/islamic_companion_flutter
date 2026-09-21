@@ -30,9 +30,28 @@ class MainActivity : FlutterActivity() {
                         )
                         result.success(null)
                     }
+                    "checkAdhanStatus" -> {
+                        result.success(checkAdhanStatus())
+                    }
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    private fun checkAdhanStatus(): Map<String, Boolean> {
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val fajrChannel = manager.getNotificationChannel(fajrChannelId)
+        val regularChannel = manager.getNotificationChannel(regularChannelId)
+        val channelsReady =
+            fajrChannel?.importance != NotificationManager.IMPORTANCE_NONE &&
+                regularChannel?.importance != NotificationManager.IMPORTANCE_NONE &&
+                fajrChannel?.sound != null &&
+                regularChannel?.sound != null
+        return mapOf(
+            "notificationsEnabled" to manager.areNotificationsEnabled(),
+            "channelsReady" to channelsReady,
+            "dndAccess" to manager.isNotificationPolicyAccessGranted
+        )
     }
 
     private fun prepareAdhanChannels() {

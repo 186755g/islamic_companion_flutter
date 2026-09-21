@@ -122,12 +122,18 @@ class _ZikrCard extends StatelessWidget {
                 children: [
                   Text(zikr.arabicText,
                       textAlign: TextAlign.right,
-                      style: const TextStyle(fontSize: 17, height: 1.8)),
+                      style: const TextStyle(
+                        fontSize: 24,
+                        height: 1.8,
+                        fontWeight: FontWeight.w500,
+                      )),
                   const SizedBox(height: 6),
                   Text(zikr.source,
                       textAlign: TextAlign.right,
-                      style:
-                          TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.grey.shade600,
+                      )),
                 ],
               ),
             ),
@@ -196,7 +202,7 @@ class _CounterBadge extends StatelessWidget {
                         '$remaining',
                         style: const TextStyle(
                           color: AppColors.deepGreen,
-                          fontSize: 20,
+                          fontSize: 22,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -204,7 +210,7 @@ class _CounterBadge extends StatelessWidget {
                         'متبقي',
                         style: TextStyle(
                           color: AppColors.deepGreen,
-                          fontSize: 10,
+                          fontSize: 12,
                         ),
                       ),
                     ],

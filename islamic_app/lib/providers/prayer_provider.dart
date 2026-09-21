@@ -123,8 +123,9 @@ class PrayerProvider extends ChangeNotifier {
 
   Future<void> _scheduleNotificationsSafely(PrayerTimes times) async {
     try {
-      await NotificationService.scheduleDailyPrayerNotifications(times)
-          .timeout(const Duration(seconds: 5));
+      // Scheduling today's and tomorrow's reminders may create up to twenty
+      // notifications. Do not abort the batch on slower devices.
+      await NotificationService.scheduleDailyPrayerNotifications(times);
     } catch (error, stackTrace) {
       debugPrint(
           'Failed to schedule prayer notifications: $error\n$stackTrace');

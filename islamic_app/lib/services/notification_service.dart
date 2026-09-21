@@ -28,6 +28,57 @@ class NotificationService {
   static const _nativeChannel =
       MethodChannel('com.example.islamic_companion/adhan');
 
+  static Future<AdhanStatus> getAdhanStatus() async {
+    final reasons = <String>[];
+    if (!_initialized) {
+      reasons.add('خدمة الإشعارات غير مهيأة');
+    }
+    if (!StorageService.getAdhanEnabled()) {
+      reasons.add('صوت الأذان متوقف من الإعدادات');
+    }
+
+    if (Platform.isAndroid) {
+      try {
+        final nativeStatus = Map<Object?, Object?>.from(await _nativeChannel
+                .invokeMethod<Map<Object?, Object?>>('checkAdhanStatus') ??
+            const {});
+        if (nativeStatus['notificationsEnabled'] != true) {
+          reasons.add('إشعارات التطبيق غير مسموحة');
+        }
+        if (nativeStatus['channelsReady'] != true) {
+          reasons.add('قناة صوت الأذان مكتومة أو معطلة');
+        }
+        if (nativeStatus['dndAccess'] != true) {
+          reasons.add('لم يتم السماح بتجاوز وضع عدم الإزعاج');
+        }
+      } on PlatformException {
+        reasons.add('تعذر التحقق من صلاحيات صوت الأذان');
+      }
+
+      final androidImpl = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      final exactAlarmsAllowed =
+          await androidImpl?.canScheduleExactNotifications() ?? false;
+      if (!exactAlarmsAllowed) {
+        reasons.add('صلاحية المنبهات الدقيقة غير مفعلة');
+      }
+    }
+
+    if (_initialized) {
+      final pending = await _plugin.pendingNotificationRequests();
+      if (pending.isEmpty) {
+        reasons.add('لا توجد مواقيت أذان مجدولة حاليًا');
+      }
+    }
+
+    return AdhanStatus(
+      isHealthy: reasons.isEmpty,
+      message: reasons.isEmpty
+          ? 'صوت الأذان مفعّل ويعمل تلقائيًا'
+          : reasons.join('\n'),
+    );
+  }
+
   static Future<bool> requestBackgroundAdhanAccess() async {
     if (!Platform.isAndroid) return false;
     try {
@@ -38,6 +89,7 @@ class NotificationService {
           'Failed to open Android adhan access settings: $error\n$stackTrace');
       return false;
     }
+
     return true;
   }
 
@@ -371,4 +423,14 @@ class NotificationService {
           UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
+}
+
+class AdhanStatus {
+  final bool isHealthy;
+  final String message;
+
+  const AdhanStatus({
+    required this.isHealthy,
+    required this.message,
+  });
 }
