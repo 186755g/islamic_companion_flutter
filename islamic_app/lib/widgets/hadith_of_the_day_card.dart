@@ -13,14 +13,14 @@ class HadithOfTheDayCard extends StatelessWidget {
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: AppColors.gold, width: 1),
+        side: BorderSide(color: AppColors.gold.withValues(alpha: .28)),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: () => Navigator.of(context)
             .push(MaterialPageRoute(builder: (_) => const HadithScreen())),
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.fromLTRB(16, 15, 16, 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -38,14 +38,14 @@ class HadithOfTheDayCard extends StatelessWidget {
               Text(
                 hadith.text,
                 textAlign: TextAlign.right,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 15, height: 1.7),
+                style: const TextStyle(
+                    fontSize: 16, height: 1.85, fontWeight: FontWeight.w500),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 10),
               Text('${hadith.source} — ${hadith.narrator}',
                   textAlign: TextAlign.right,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                  style: TextStyle(
+                      fontSize: 11, height: 1.4, color: Colors.grey.shade600)),
             ],
           ),
         ),

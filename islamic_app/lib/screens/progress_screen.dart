@@ -16,74 +16,80 @@ class ProgressScreen extends StatelessWidget {
     final remaining =
         (points.weeklyTarget - points.weeklyPoints).clamp(0, 1 << 30);
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-      children: [
-        _ProgressHero(points: points),
-        const SizedBox(height: 18),
-        Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final horizontalPadding = constraints.maxWidth >= 600 ? 28.0 : 16.0;
+        return ListView(
+          padding:
+              EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 28),
           children: [
-            Expanded(
-              child: _StatCard(
-                icon: Icons.local_fire_department_rounded,
-                label: 'السلسلة الحالية',
-                value: '${streak.currentStreak} يوم',
-                color: AppColors.gold,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _StatCard(
-                icon: Icons.calendar_month_rounded,
-                label: 'أيام النشاط',
-                value: '${streak.totalActiveDays} يوم',
-                color: AppColors.mediumGreen,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        _MotivationCard(
-          achieved: !points.isBelowTarget,
-          remaining: remaining,
-        ),
-        const SizedBox(height: 18),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+            _ProgressHero(points: points),
+            const SizedBox(height: 18),
+            Row(
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.auto_awesome,
-                        color: AppColors.gold, size: 22),
-                    const SizedBox(width: 8),
-                    Text('كيف تجمع النقاط؟',
-                        style: Theme.of(context).textTheme.titleMedium),
-                  ],
+                Expanded(
+                  child: _StatCard(
+                    icon: Icons.local_fire_department_rounded,
+                    label: 'السلسلة الحالية',
+                    value: '${streak.currentStreak} يوم',
+                    color: AppColors.gold,
+                  ),
                 ),
-                const SizedBox(height: 10),
-                const _RuleRow(
-                  icon: Icons.mosque_rounded,
-                  label: 'كل صلاة فريضة',
-                  points: '+10',
-                ),
-                const _RuleRow(
-                  icon: Icons.favorite_rounded,
-                  label: 'كل سنة راتبة',
-                  points: '+5',
-                ),
-                const _RuleRow(
-                  icon: Icons.menu_book_rounded,
-                  label: 'استمر في وردك اليومي',
-                  points: 'بركة',
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _StatCard(
+                    icon: Icons.calendar_month_rounded,
+                    label: 'أيام النشاط',
+                    value: '${streak.totalActiveDays} يوم',
+                    color: AppColors.mediumGreen,
+                  ),
                 ),
               ],
             ),
-          ),
-        ),
-      ],
+            const SizedBox(height: 10),
+            _MotivationCard(
+              achieved: !points.isBelowTarget,
+              remaining: remaining,
+            ),
+            const SizedBox(height: 18),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.auto_awesome,
+                            color: AppColors.gold, size: 22),
+                        const SizedBox(width: 8),
+                        Text('كيف تجمع النقاط؟',
+                            style: Theme.of(context).textTheme.titleMedium),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    const _RuleRow(
+                      icon: Icons.mosque_rounded,
+                      label: 'كل صلاة فريضة',
+                      points: '+10',
+                    ),
+                    const _RuleRow(
+                      icon: Icons.favorite_rounded,
+                      label: 'كل سنة راتبة',
+                      points: '+5',
+                    ),
+                    const _RuleRow(
+                      icon: Icons.menu_book_rounded,
+                      label: 'استمر في وردك اليومي',
+                      points: 'بركة',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -147,8 +153,8 @@ class _ProgressHero extends StatelessWidget {
                     curve: Curves.easeOutCubic,
                     builder: (context, value, _) {
                       return SizedBox(
-                        width: 142,
-                        height: 142,
+                        width: 132,
+                        height: 132,
                         child: Stack(
                           alignment: Alignment.center,
                           children: [

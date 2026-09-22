@@ -95,8 +95,10 @@ class NotificationService {
 
   // These channel IDs are intentionally versioned. Android persists channel
   // settings, so changing the audio usage on an existing channel has no effect.
-  static const _fajrChannelId = 'prayer_times_fajr_v3_alarm';
-  static const _regularChannelId = 'prayer_times_regular_v3_alarm';
+  // Android notification channel sound settings are immutable after creation.
+  // Bump the IDs when repairing a channel's sound configuration.
+  static const _fajrChannelId = 'prayer_times_fajr_v4_alarm';
+  static const _regularChannelId = 'prayer_times_regular_v4_alarm';
   static const _silentChannelId = 'prayer_times_silent_v2';
 
   static Future<void> init() async {
@@ -308,12 +310,18 @@ class NotificationService {
     };
 
     final now = DateTime.now();
+    debugPrint('[ADHAN] Scheduling prayer alarms');
+    debugPrint('[ADHAN] Current time: $now');
+    debugPrint(
+        '[ADHAN] Timezone: ${tz.local.name}, exact alarms: $_exactAlarmsAllowed');
     // Keep tomorrow's alarms too. This prevents a phone that stays idle
     // overnight from losing the next day's adhan until the app is opened.
     for (var dayOffset = 0; dayOffset <= 1; dayOffset++) {
       for (final entry in entries.entries) {
         final prayerTime = entry.value.add(Duration(days: dayOffset));
         if (prayerTime.isAfter(now)) {
+          debugPrint(
+              '[ADHAN] Prayer: ${entry.key.arabicName}, Scheduled time: $prayerTime');
           await _scheduleAt(
             id: dayOffset * 10 + entry.key.index,
             title: 'حان الآن وقت صلاة ${entry.key.arabicName}',
@@ -356,6 +364,10 @@ class NotificationService {
         selectedCustomPath != null && await File(selectedCustomPath).exists()
             ? selectedCustomPath
             : null;
+    if (isAdhan && selectedCustomPath != null && customPath == null) {
+      debugPrint(
+          '[ADHAN] Custom audio unavailable, using bundled resource: $selectedCustomPath');
+    }
     final sound = isAdhan && StorageService.getAdhanEnabled() ||
             !isAdhan && customPath != null
         ? customPath == null
@@ -422,6 +434,39 @@ class NotificationService {
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
     );
+    debugPrint(
+        '[ADHAN] Scheduled id=$id, prayer=${prayer.arabicName}, audio=${sound == null ? 'off' : customPath ?? (prayer == FardPrayer.fajr ? 'res/raw/adhan_fajr' : 'res/raw/adhan_regular')}, date=$dateTime');
+  }
+
+  /// Debug-only smoke test that uses the exact same Android channel and sound
+  /// path as a real prayer alarm, without changing the schedule.
+  static Future<void> debugPlayAdhanNow() async {
+    if (!_initialized) {
+      throw StateError('لم يتم تهيئة خدمة إشعارات الأذان بعد');
+    }
+    const prayer = FardPrayer.fajr;
+    final details = AndroidNotificationDetails(
+      _fajrChannelId,
+      'أذان الفجر',
+      channelDescription: 'اختبار صوت الأذان',
+      importance: Importance.max,
+      priority: Priority.high,
+      category: AndroidNotificationCategory.alarm,
+      playSound: StorageService.getAdhanEnabled(),
+      sound: StorageService.getAdhanEnabled()
+          ? const RawResourceAndroidNotificationSound('adhan_fajr')
+          : null,
+      audioAttributesUsage: AudioAttributesUsage.alarm,
+    );
+    debugPrint(
+        '[ADHAN] Manual test, Prayer: ${prayer.arabicName}, Audio file: res/raw/adhan_fajr');
+    await _plugin.show(
+      9001,
+      'اختبار الأذان',
+      'إذا كان الصوت مسموعًا فالقناة والملف يعملان.',
+      NotificationDetails(android: details),
+    );
+    debugPrint('[ADHAN] Manual notification triggered');
   }
 }
 

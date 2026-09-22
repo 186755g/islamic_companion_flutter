@@ -173,7 +173,7 @@ class _AnimatedNavItemState extends State<_AnimatedNavItem> {
         behavior: HitTestBehavior.opaque,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(vertical: 5),
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 3),
           decoration: BoxDecoration(
             color: AppColors.lightGold.withValues(
               alpha: widget.selected ? .62 : 0,
@@ -189,7 +189,7 @@ class _AnimatedNavItemState extends State<_AnimatedNavItem> {
                 duration: const Duration(milliseconds: 180),
                 style: TextStyle(
                   color: color,
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight:
                       widget.selected ? FontWeight.w700 : FontWeight.w500,
                 ),
@@ -275,56 +275,62 @@ class _PrayerHomeTabState extends State<_PrayerHomeTab> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        const IslamicOrnamentDivider(),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
-          child: Column(
-            children: [
-              _PrayerDashboardHero(prayerProv: prayerProv),
-              const SizedBox(height: 14),
-              if (prayerProv.locationNotice != null) ...[
-                _LocationPermissionNotice(prayerProv: prayerProv),
-                const SizedBox(height: 14),
-              ],
-              _NextPrayerCard(prayerProv: prayerProv),
-              const SizedBox(height: 14),
-              _PrayerTimeline(prayerProv: prayerProv),
-              const SizedBox(height: 20),
-              _PrayerSectionHeader(
-                title: 'متابعة الصلوات',
-                subtitle:
-                    DateFormat('EEEE، d MMMM', 'ar').format(DateTime.now()),
-                icon: Icons.check_circle_outline_rounded,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final horizontalPadding = constraints.maxWidth >= 600 ? 28.0 : 14.0;
+        return ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const IslamicOrnamentDivider(),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                  horizontalPadding, 14, horizontalPadding, 28),
+              child: Column(
+                children: [
+                  _PrayerDashboardHero(prayerProv: prayerProv),
+                  const SizedBox(height: 14),
+                  if (prayerProv.locationNotice != null) ...[
+                    _LocationPermissionNotice(prayerProv: prayerProv),
+                    const SizedBox(height: 14),
+                  ],
+                  _NextPrayerCard(prayerProv: prayerProv),
+                  const SizedBox(height: 14),
+                  _PrayerTimeline(prayerProv: prayerProv),
+                  const SizedBox(height: 20),
+                  _PrayerSectionHeader(
+                    title: 'متابعة الصلوات',
+                    subtitle:
+                        DateFormat('EEEE، d MMMM', 'ar').format(DateTime.now()),
+                    icon: Icons.check_circle_outline_rounded,
+                  ),
+                  const SizedBox(height: 10),
+                  _PrayerCardPager(
+                    selectedIndex: _selectedPrayerIndex,
+                    onIndexChanged: (index) =>
+                        setState(() => _selectedPrayerIndex = index),
+                  ),
+                  const SizedBox(height: 14),
+                  const _PrayerSectionHeader(
+                    title: 'التقدم الأسبوعي',
+                    subtitle: 'تابع نقاطك وحافظ على استمراريتك',
+                    icon: Icons.trending_up_rounded,
+                  ),
+                  const SizedBox(height: 10),
+                  _WeeklyPointsCard(pointsProv: pointsProv),
+                  const SizedBox(height: 14),
+                  const _PrayerSectionHeader(
+                    title: 'إلهام اليوم',
+                    subtitle: 'كلمة تضيء يومك',
+                    icon: Icons.auto_stories_rounded,
+                  ),
+                  const SizedBox(height: 10),
+                  const HadithOfTheDayCard(),
+                ],
               ),
-              const SizedBox(height: 10),
-              _PrayerCardPager(
-                selectedIndex: _selectedPrayerIndex,
-                onIndexChanged: (index) =>
-                    setState(() => _selectedPrayerIndex = index),
-              ),
-              const SizedBox(height: 14),
-              const _PrayerSectionHeader(
-                title: 'التقدم الأسبوعي',
-                subtitle: 'تابع نقاطك وحافظ على استمراريتك',
-                icon: Icons.trending_up_rounded,
-              ),
-              const SizedBox(height: 10),
-              _WeeklyPointsCard(pointsProv: pointsProv),
-              const SizedBox(height: 14),
-              const _PrayerSectionHeader(
-                title: 'إلهام اليوم',
-                subtitle: 'كلمة تضيء يومك',
-                icon: Icons.auto_stories_rounded,
-              ),
-              const SizedBox(height: 10),
-              const HadithOfTheDayCard(),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -497,12 +503,8 @@ class _PrayerDashboardHero extends StatelessWidget {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.deepGreen, Color(0xFF176047)],
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-        ),
-        borderRadius: BorderRadius.circular(28),
+        color: AppColors.deepGreen,
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
             color: AppColors.deepGreen.withValues(alpha: .2),
@@ -521,7 +523,7 @@ class _PrayerDashboardHero extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -547,51 +549,72 @@ class _PrayerDashboardHero extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 22),
-                const Text(
-                  'بارك الله في يومك',
-                  style: TextStyle(color: AppColors.lightGold, fontSize: 13),
+                const SizedBox(height: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${(progress * 100).round()}%',
+                      style: const TextStyle(
+                        color: AppColors.lightGold,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const Text(
+                          'بارك الله في يومك',
+                          style: TextStyle(
+                              color: AppColors.lightGold, fontSize: 12),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '$completed من ${FardPrayer.values.length} صلوات مكتملة',
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '$completed من ${FardPrayer.values.length} صلوات مكتملة',
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(20),
                   child: LinearProgressIndicator(
                     value: progress,
-                    minHeight: 8,
-                    backgroundColor: Colors.white.withValues(alpha: .16),
+                    minHeight: 7,
+                    backgroundColor: Colors.white.withValues(alpha: .14),
                     valueColor:
                         const AlwaysStoppedAnimation(AppColors.lightGold),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   progress == 1
                       ? 'أتممت صلوات اليوم، تقبّل الله'
                       : 'استمر، كل صلاة نور',
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  style: const TextStyle(color: Colors.white70, fontSize: 11),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: .12),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: AppColors.lightGold.withValues(alpha: .18),
                     ),
                   ),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Container(
                         width: 42,
@@ -655,7 +678,7 @@ class _PrayerDashboardHero extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 10),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
@@ -663,7 +686,7 @@ class _PrayerDashboardHero extends StatelessWidget {
                             '${streak.currentStreak}',
                             style: TextStyle(
                               color: glowColor,
-                              fontSize: 26,
+                              fontSize: 24,
                               height: 1,
                               fontWeight: FontWeight.bold,
                             ),
@@ -681,7 +704,7 @@ class _PrayerDashboardHero extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     _DashboardStat(
@@ -751,11 +774,17 @@ class _PrayerTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final nextPrayer = FardPrayer.values
+        .map((prayer) => (prayer: prayer, time: prayerProv.timeFor(prayer)))
+        .where((entry) => entry.time != null && entry.time!.isAfter(now))
+        .map((entry) => entry.prayer)
+        .firstOrNull;
     return Card(
       margin: EdgeInsets.zero,
       elevation: 0,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
+        padding: const EdgeInsets.fromLTRB(12, 13, 12, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
@@ -770,9 +799,9 @@ class _PrayerTimeline extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             SizedBox(
-              height: 92,
+              height: 88,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 reverse: true,
@@ -782,37 +811,50 @@ class _PrayerTimeline extends StatelessWidget {
                   final prayer = FardPrayer.values[index];
                   final visual = _PrayerVisual.forPrayer(prayer);
                   final checked = prayerProv.fardChecked(prayer);
+                  final isNext = prayer == nextPrayer;
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 260),
                     width: 74,
                     padding: const EdgeInsets.symmetric(vertical: 9),
                     decoration: BoxDecoration(
-                      color: checked
-                          ? visual.accent.withValues(alpha: .16)
-                          : visual.background.withValues(alpha: .65),
+                      color: isNext
+                          ? AppColors.deepGreen
+                          : checked
+                              ? visual.accent.withValues(alpha: .16)
+                              : visual.background.withValues(alpha: .65),
                       borderRadius: BorderRadius.circular(17),
                       border: Border.all(
                         color: checked
-                            ? visual.accent.withValues(alpha: .5)
-                            : visual.accent.withValues(alpha: .18),
+                            ? AppColors.lightGold.withValues(alpha: .7)
+                            : isNext
+                                ? AppColors.lightGold.withValues(alpha: .6)
+                                : visual.accent.withValues(alpha: .18),
                       ),
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Icon(checked ? Icons.check_circle : visual.icon,
-                            color: checked ? AppColors.success : visual.accent,
+                            color: checked
+                                ? AppColors.success
+                                : isNext
+                                    ? AppColors.lightGold
+                                    : visual.accent,
                             size: 22),
                         Text(prayer.arabicName,
-                            style: const TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.bold)),
+                            style: TextStyle(
+                                color: isNext ? Colors.white : null,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold)),
                         Text(
                           prayerProv.timeFor(prayer) == null
                               ? '--:--'
                               : DateFormat.jm('ar')
                                   .format(prayerProv.timeFor(prayer)!),
                           style: TextStyle(
-                              color: visual.accent,
+                              color: isNext
+                                  ? Colors.white.withValues(alpha: .88)
+                                  : visual.accent,
                               fontSize: 11,
                               fontWeight: FontWeight.w600),
                         ),
@@ -933,7 +975,7 @@ class _LocationPermissionNotice extends StatelessWidget {
     return Card(
       color: AppColors.lightGold.withValues(alpha: 0.22),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
@@ -946,7 +988,7 @@ class _LocationPermissionNotice extends StatelessWidget {
                   child: Text(
                     prayerProv.locationNotice!,
                     textAlign: TextAlign.right,
-                    style: const TextStyle(fontSize: 13),
+                    style: const TextStyle(fontSize: 13, height: 1.4),
                   ),
                 ),
               ],
@@ -1234,32 +1276,45 @@ class _WeeklyPointsCard extends StatelessWidget {
       color: AppColors.deepGreen,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 15),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            const Text('نقاطك هذا الأسبوع',
-                style: TextStyle(color: AppColors.lightGold, fontSize: 14)),
-            const SizedBox(height: 4),
-            Text('${pointsProv.weeklyPoints} / ${pointsProv.weeklyTarget}',
-                style: const TextStyle(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${pointsProv.weeklyPoints} / ${pointsProv.weeklyTarget}',
+                  style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
+                    fontSize: 24,
+                    height: 1,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                const Text('نقاطك هذا الأسبوع',
+                    style: TextStyle(
+                        color: AppColors.lightGold,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600)),
+              ],
+            ),
+            const SizedBox(height: 12),
             ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(20),
               child: LinearProgressIndicator(
                 value: pointsProv.progressRatio,
-                minHeight: 8,
-                backgroundColor: Colors.white24,
-                valueColor: const AlwaysStoppedAnimation(AppColors.gold),
+                minHeight: 7,
+                backgroundColor: Colors.white.withValues(alpha: .14),
+                valueColor: const AlwaysStoppedAnimation(AppColors.lightGold),
               ),
             ),
             if (pointsProv.isBelowTarget) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 7),
               const Text('حافظ على استمراريتك للوصول للحد الأدنى الأسبوعي 🌙',
-                  style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  textAlign: TextAlign.right,
+                  style: TextStyle(color: Colors.white70, fontSize: 11)),
             ]
           ],
         ),
@@ -1333,17 +1388,11 @@ class _FardCardState extends State<_FardCard>
                   ),
                 ),
                 Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.white,
-                        visual.background.withValues(alpha: 0.42),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
                   ),
-                  padding: const EdgeInsets.all(12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -1355,6 +1404,10 @@ class _FardCardState extends State<_FardCard>
                                 ? (_) => prov.toggleFard(widget.prayer)
                                 : null,
                             activeColor: AppColors.success,
+                            visualDensity: VisualDensity.compact,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
                           ),
                           Expanded(
                             child: Column(
@@ -1413,6 +1466,10 @@ class _FardCardState extends State<_FardCard>
                                     ? (_) => prov.toggleSunnah(s)
                                     : null,
                                 activeColor: AppColors.gold,
+                                visualDensity: VisualDensity.compact,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
                               ),
                               Expanded(
                                 child: Text(
@@ -1523,32 +1580,39 @@ class _NextPrayerCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [visual.background, AppColors.deepGreen],
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.45)),
+        color: AppColors.softGreen,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.deepGreen.withValues(alpha: .12)),
       ),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
-          Icon(visual.icon, color: AppColors.lightGold, size: 42),
-          const SizedBox(width: 14),
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: .75),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(visual.icon, color: visual.accent, size: 26),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 const Text('الصلاة القادمة',
-                    style: TextStyle(color: AppColors.lightGold, fontSize: 13)),
+                    style: TextStyle(
+                        color: AppColors.deepGreen,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 Text(
                   next == null ? 'الفجر غدًا' : next.prayer.arabicName,
                   textAlign: TextAlign.right,
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
+                    color: AppColors.deepGreen,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -1557,7 +1621,10 @@ class _NextPrayerCard extends StatelessWidget {
                   next?.time == null
                       ? 'يتم تحديث المواقيت يوميًا'
                       : DateFormat.jm('ar').format(next!.time!),
-                  style: const TextStyle(color: Colors.white70, fontSize: 15),
+                  style: TextStyle(
+                      color: AppColors.textDark.withValues(alpha: .7),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600),
                 ),
               ],
             ),

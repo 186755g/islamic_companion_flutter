@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
@@ -544,6 +545,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       fajr: false,
                     ),
                     _notificationSoundTile(),
+                    if (kDebugMode)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            try {
+                              await NotificationService.debugPlayAdhanNow();
+                            } catch (error, stackTrace) {
+                              debugPrint(
+                                  '[ADHAN] Manual test error: $error\n$stackTrace');
+                            }
+                          },
+                          icon: const Icon(Icons.play_arrow_rounded),
+                          label: const Text('اختبار صوت الأذان (Debug)'),
+                        ),
+                      ),
                     const Padding(
                       padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
                       child: Text(

@@ -27,6 +27,7 @@ class AppTheme {
         secondary: AppColors.gold,
         surface: AppColors.ivory,
       ),
+      visualDensity: VisualDensity.standard,
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.deepGreen,
         foregroundColor: AppColors.ivory,
@@ -40,13 +41,13 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: Colors.white,
-        elevation: 1.5,
-        shadowColor: AppColors.deepGreen.withValues(alpha: 0.1),
+        elevation: 1,
+        shadowColor: AppColors.deepGreen.withValues(alpha: 0.08),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: AppColors.gold.withValues(alpha: 0.18)),
+          borderRadius: const BorderRadius.all(Radius.circular(18)),
+          side: BorderSide(color: AppColors.gold.withValues(alpha: 0.14)),
         ),
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -59,13 +60,15 @@ class AppTheme {
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: AppColors.gold,
+        linearTrackColor: Color(0xFFE7EDE8),
       ),
       navigationBarTheme: const NavigationBarThemeData(
-        height: 72,
+        height: 68,
         backgroundColor: Colors.white,
         indicatorColor: AppColors.warmSand,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStatePropertyAll(
-          TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
         ),
       ),
       dividerTheme: DividerThemeData(
@@ -74,11 +77,16 @@ class AppTheme {
         space: 1,
       ),
       textTheme: const TextTheme(
-        headlineSmall:
-            TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark),
-        titleMedium:
-            TextStyle(fontWeight: FontWeight.w600, color: AppColors.textDark),
-        bodyMedium: TextStyle(color: AppColors.textDark, height: 1.6),
+        headlineSmall: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppColors.textDark,
+            height: 1.35),
+        titleMedium: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: AppColors.textDark,
+            height: 1.35),
+        bodyMedium: TextStyle(color: AppColors.textDark, height: 1.65),
+        bodySmall: TextStyle(color: Color(0xFF607068), height: 1.5),
       ),
     );
   }
@@ -112,13 +120,13 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: darkSurface,
-        elevation: 1.5,
+        elevation: 1,
         shadowColor: Colors.black54,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: AppColors.gold.withValues(alpha: 0.25)),
+          borderRadius: BorderRadius.circular(18),
+          side: BorderSide(color: AppColors.gold.withValues(alpha: 0.2)),
         ),
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -133,11 +141,12 @@ class AppTheme {
         color: AppColors.lightGold,
       ),
       navigationBarTheme: const NavigationBarThemeData(
-        height: 72,
+        height: 68,
         backgroundColor: darkSurface,
         indicatorColor: AppColors.deepGreen,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStatePropertyAll(
-          TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
         ),
       ),
       dividerTheme: DividerThemeData(
@@ -149,12 +158,15 @@ class AppTheme {
         headlineSmall: TextStyle(
           fontWeight: FontWeight.bold,
           color: darkText,
+          height: 1.35,
         ),
         titleMedium: TextStyle(
           fontWeight: FontWeight.w600,
           color: darkText,
+          height: 1.35,
         ),
         bodyMedium: TextStyle(color: darkText, height: 1.6),
+        bodySmall: TextStyle(color: Color(0xFFB7C5BD), height: 1.5),
       ),
     );
   }

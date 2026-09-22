@@ -12,8 +12,8 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private val channelName = "com.example.islamic_companion/adhan"
-    private val fajrChannelId = "prayer_times_fajr_v3_alarm"
-    private val regularChannelId = "prayer_times_regular_v3_alarm"
+    private val fajrChannelId = "prayer_times_fajr_v4_alarm"
+    private val regularChannelId = "prayer_times_regular_v4_alarm"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
