@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/prayer_model.dart';
@@ -22,6 +23,31 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+class _OrnateAppBarBackground extends StatelessWidget {
+  const _OrnateAppBarBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppThemeTokens>()!;
+    final ornate = tokens.primary == AppColors.ornateGreen;
+    if (!ornate) return const SizedBox.shrink();
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        SvgPicture.asset(
+          tokens.ornamentPattern,
+          fit: BoxFit.cover,
+          colorFilter: ColorFilter.mode(
+            tokens.secondary.withValues(alpha: .24),
+            BlendMode.srcIn,
+          ),
+        ),
+        SvgPicture.asset(tokens.ornamentFrame, fit: BoxFit.fill),
+      ],
+    );
+  }
+}
+
 class _HomeScreenState extends State<HomeScreen> {
   int _tabIndex = 0;
 
@@ -37,6 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        flexibleSpace: const _OrnateAppBarBackground(),
         title: const Text('رفيق المسلم'),
         actions: [
           IconButton(
@@ -71,6 +98,8 @@ class _BottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppThemeTokens>()!;
+    final ornate = tokens.primary == AppColors.ornateGreen;
     const items = [
       (icon: Icons.mosque_rounded, label: 'الصلاة', effect: _NavEffect.glow),
       (
@@ -100,7 +129,10 @@ class _BottomNavigation extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(8, 7, 8, 5),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: tokens.surface,
+          border: ornate
+              ? Border(top: BorderSide(color: tokens.secondary, width: 2))
+              : null,
           boxShadow: [
             BoxShadow(
               color: AppColors.deepGreen.withValues(alpha: .1),
@@ -109,18 +141,36 @@ class _BottomNavigation extends StatelessWidget {
             ),
           ],
         ),
-        child: Row(
+        child: Stack(
           children: [
-            for (var i = 0; i < items.length; i++)
-              Expanded(
-                child: _AnimatedNavItem(
-                  icon: items[i].icon,
-                  label: items[i].label,
-                  effect: items[i].effect,
-                  selected: selectedIndex == i,
-                  onTap: () => onSelected(i),
+            if (ornate)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: SvgPicture.asset(
+                    tokens.ornamentPattern,
+                    fit: BoxFit.cover,
+                    colorFilter: ColorFilter.mode(
+                      tokens.secondary.withValues(alpha: .12),
+                      BlendMode.srcIn,
+                    ),
+                  ),
                 ),
               ),
+            Row(
+              children: [
+                for (var i = 0; i < items.length; i++)
+                  Expanded(
+                    child: _AnimatedNavItem(
+                      icon: items[i].icon,
+                      label: items[i].label,
+                      effect: items[i].effect,
+                      selected: selectedIndex == i,
+                      ornate: ornate,
+                      onTap: () => onSelected(i),
+                    ),
+                  ),
+              ],
+            ),
           ],
         ),
       ),
@@ -135,6 +185,7 @@ class _AnimatedNavItem extends StatefulWidget {
   final String label;
   final _NavEffect effect;
   final bool selected;
+  final bool ornate;
   final VoidCallback onTap;
 
   const _AnimatedNavItem({
@@ -142,6 +193,7 @@ class _AnimatedNavItem extends StatefulWidget {
     required this.label,
     required this.effect,
     required this.selected,
+    required this.ornate,
     required this.onTap,
   });
 
@@ -163,7 +215,10 @@ class _AnimatedNavItemState extends State<_AnimatedNavItem> {
   @override
   Widget build(BuildContext context) {
     final active = widget.selected || _pressed;
-    final color = active ? AppColors.deepGreen : Colors.grey.shade600;
+    final tokens = Theme.of(context).extension<AppThemeTokens>()!;
+    final color = active
+        ? (widget.ornate ? tokens.secondary : tokens.primary)
+        : tokens.textSecondary;
     return Semantics(
       button: true,
       selected: widget.selected,
@@ -175,10 +230,17 @@ class _AnimatedNavItemState extends State<_AnimatedNavItem> {
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 3),
           decoration: BoxDecoration(
-            color: AppColors.lightGold.withValues(
+            color: tokens.secondary.withValues(
               alpha: widget.selected ? .62 : 0,
             ),
             borderRadius: BorderRadius.circular(18),
+            border: widget.ornate
+                ? Border.all(
+                    color: tokens.secondary.withValues(
+                      alpha: widget.selected ? .75 : .18,
+                    ),
+                  )
+                : null,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -489,6 +551,8 @@ class _PrayerDashboardHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppThemeTokens>()!;
+    final ornate = tokens.primary == AppColors.ornateGreen;
     final completed = FardPrayer.values.where(prayerProv.fardChecked).length;
     final progress = completed / FardPrayer.values.length;
     final streakProv = context.watch<StreakProvider>();
@@ -503,8 +567,9 @@ class _PrayerDashboardHero extends StatelessWidget {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: AppColors.deepGreen,
-        borderRadius: BorderRadius.circular(22),
+        color: tokens.primary,
+        borderRadius: tokens.cardRadius,
+        border: ornate ? Border.all(color: tokens.secondary, width: 2) : null,
         boxShadow: [
           BoxShadow(
             color: AppColors.deepGreen.withValues(alpha: .2),
@@ -516,12 +581,37 @@ class _PrayerDashboardHero extends StatelessWidget {
       child: Stack(
         children: [
           Positioned.fill(
-            child: CustomPaint(
-              painter: _DashboardPattern(
-                color: AppColors.lightGold.withValues(alpha: .13),
+            child: ornate
+                ? SvgPicture.asset(
+                    tokens.ornamentPattern,
+                    fit: BoxFit.cover,
+                    colorFilter: ColorFilter.mode(
+                      tokens.secondary.withValues(alpha: .28),
+                      BlendMode.srcIn,
+                    ),
+                  )
+                : CustomPaint(
+                    painter: _DashboardPattern(
+                      color: AppColors.lightGold.withValues(alpha: .13),
+                    ),
+                  ),
+          ),
+          if (ornate)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: SvgPicture.asset(tokens.ornamentFrame, fit: BoxFit.fill),
               ),
             ),
-          ),
+          if (ornate)
+            Positioned(
+              left: 18,
+              bottom: 14,
+              child: SvgPicture.asset(
+                'assets/ornaments/illustrations/golden_mosque.svg',
+                width: 92,
+                height: 70,
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
             child: Column(
@@ -774,6 +864,8 @@ class _PrayerTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppThemeTokens>()!;
+    final ornate = tokens.primary == AppColors.ornateGreen;
     final now = DateTime.now();
     final nextPrayer = FardPrayer.values
         .map((prayer) => (prayer: prayer, time: prayerProv.timeFor(prayer)))
@@ -818,17 +910,21 @@ class _PrayerTimeline extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 9),
                     decoration: BoxDecoration(
                       color: isNext
-                          ? AppColors.deepGreen
+                          ? tokens.primary
                           : checked
-                              ? visual.accent.withValues(alpha: .16)
-                              : visual.background.withValues(alpha: .65),
-                      borderRadius: BorderRadius.circular(17),
+                              ? tokens.secondary.withValues(alpha: .18)
+                              : ornate
+                                  ? tokens.surface.withValues(alpha: .9)
+                                  : visual.background.withValues(alpha: .65),
+                      borderRadius: tokens.buttonRadius,
                       border: Border.all(
                         color: checked
-                            ? AppColors.lightGold.withValues(alpha: .7)
+                            ? tokens.secondary.withValues(alpha: .7)
                             : isNext
-                                ? AppColors.lightGold.withValues(alpha: .6)
-                                : visual.accent.withValues(alpha: .18),
+                                ? tokens.secondary.withValues(alpha: .8)
+                                : ornate
+                                    ? tokens.secondary.withValues(alpha: .55)
+                                    : visual.accent.withValues(alpha: .18),
                       ),
                     ),
                     child: Column(
@@ -838,7 +934,7 @@ class _PrayerTimeline extends StatelessWidget {
                             color: checked
                                 ? AppColors.success
                                 : isNext
-                                    ? AppColors.lightGold
+                                    ? tokens.secondary
                                     : visual.accent,
                             size: 22),
                         Text(prayer.arabicName,
@@ -1346,6 +1442,8 @@ class _FardCardState extends State<_FardCard>
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppThemeTokens>()!;
+    final ornate = tokens.primary == AppColors.ornateGreen;
     final prov = context.watch<PrayerProvider>();
     final unlocked = prov.isFardUnlocked(widget.prayer);
     final checked = prov.fardChecked(widget.prayer);
@@ -1381,15 +1479,33 @@ class _FardCardState extends State<_FardCard>
             child: Stack(
               children: [
                 Positioned.fill(
-                  child: CustomPaint(
-                    painter: _PrayerCardPattern(
-                      color: visual.accent.withValues(alpha: 0.08),
+                  child: ornate
+                      ? SvgPicture.asset(
+                          tokens.ornamentPattern,
+                          fit: BoxFit.cover,
+                          colorFilter: ColorFilter.mode(
+                            tokens.secondary.withValues(alpha: .18),
+                            BlendMode.srcIn,
+                          ),
+                        )
+                      : CustomPaint(
+                          painter: _PrayerCardPattern(
+                            color: visual.accent.withValues(alpha: 0.08),
+                          ),
+                        ),
+                ),
+                if (ornate)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: SvgPicture.asset(tokens.ornamentFrame,
+                          fit: BoxFit.fill),
                     ),
                   ),
-                ),
                 Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
+                  decoration: BoxDecoration(
+                    color: ornate
+                        ? tokens.surface.withValues(alpha: .92)
+                        : Colors.white,
                   ),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

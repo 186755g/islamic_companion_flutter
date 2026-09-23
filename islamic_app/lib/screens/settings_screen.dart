@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../data/egypt_governorates.dart';
 import '../providers/prayer_provider.dart';
+import '../providers/theme_provider.dart';
 import '../services/notification_service.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
@@ -302,6 +303,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final prayer = context.watch<PrayerProvider>();
+    final themeProvider = context.watch<ThemeProvider>();
     final selected =
         _selectedGovernorate ?? prayer.selectedGovernorate ?? 'اختر المحافظة';
     final showLocationSection = _matches('الموقع مواقيت الصلاة مصر المحافظة');
@@ -680,6 +682,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: const Text('الوضع الداكن'),
               subtitle: Text(
                 _darkMode ? 'تم تفعيل الوضع الداكن' : 'استخدم الألوان الفاتحة',
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: SwitchListTile.adaptive(
+              value: !themeProvider.isClassicMinimal,
+              onChanged: (_) => context.read<ThemeProvider>().toggleTheme(),
+              secondary: const Icon(Icons.auto_awesome_outlined),
+              title: const Text('الثيم الإسلامي المزخرف'),
+              subtitle: Text(
+                themeProvider.isClassicMinimal
+                    ? 'الثيم الحالي: الكلاسيكي البسيط'
+                    : 'الثيم الحالي: المزخرف والفاخر',
               ),
             ),
           ),

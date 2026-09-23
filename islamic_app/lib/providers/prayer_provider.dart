@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:adhan_dart/adhan_dart.dart';
@@ -39,6 +40,16 @@ class PrayerProvider extends ChangeNotifier {
   Future<void> _init() async {
     try {
       _log = StorageService.getLogForDate(_todayKey);
+      if (!Platform.isAndroid && !Platform.isIOS) {
+        _times = NotificationService.calculateToday(
+          latitude: 21.4225,
+          longitude: 39.8262,
+        );
+        _locationNotice = null;
+        _loading = false;
+        notifyListeners();
+        return;
+      }
       await _resolveLocationAndTimes();
     } catch (error, stackTrace) {
       debugPrint('PrayerProvider init failed: $error\n$stackTrace');

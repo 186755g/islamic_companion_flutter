@@ -103,6 +103,10 @@ class NotificationService {
 
   static Future<void> init() async {
     if (_initialized) return;
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      _initialized = true;
+      return;
+    }
     tzdata.initializeTimeZones();
     await _configureLocalTimezone();
 

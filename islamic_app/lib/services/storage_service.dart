@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../models/prayer_model.dart';
 import '../models/streak_model.dart';
 import '../models/quran_progress_model.dart';
+import '../theme/app_theme.dart';
 
 /// خدمة التخزين المحلي باستخدام Hive (لا تحتاج اتصال إنترنت).
 class StorageService {
@@ -112,6 +113,15 @@ class StorageService {
   static Future<void> setDarkMode(bool enabled) async {
     await _settings.put('dark_mode', enabled);
     darkModeNotifier.value = enabled;
+  }
+
+  static AppThemeType getThemeType() {
+    final storedValue = _settings.get('theme_type') as String?;
+    return AppThemeTypeX.fromStorage(storedValue);
+  }
+
+  static Future<void> setThemeType(AppThemeType themeType) async {
+    await _settings.put('theme_type', themeType.storageName);
   }
 
   static String getPrayerCardAnimation() =>

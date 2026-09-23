@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
@@ -8,28 +10,31 @@ import 'providers/streak_provider.dart';
 import 'providers/hadith_provider.dart';
 import 'providers/quran_provider.dart';
 import 'providers/stories_provider.dart';
+import 'providers/theme_provider.dart';
 import 'services/notification_service.dart';
 import 'services/storage_service.dart';
 import 'services/hadith_widget_service.dart';
-import 'theme/app_theme.dart';
 import 'screens/home_screen.dart';
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ar');
   await StorageService.init();
-  try {
-    await HadithWidgetService.update();
-  } catch (error, stackTrace) {
-    debugPrint('Hadith widget update failed: $error\n$stackTrace');
+  if (Platform.isAndroid) {
+    try {
+      await HadithWidgetService.update();
+    } catch (error, stackTrace) {
+      debugPrint('Hadith widget update failed: $error\n$stackTrace');
+    }
   }
-  try {
-    // Initialization can wait for Android permission dialogs. A short timeout
-    // would let the app start with an uninitialized scheduler, so prayer
-    // notifications would never be created for that session.
-    await NotificationService.init();
-  } catch (error, stackTrace) {
-    debugPrint('Notification initialization failed: $error\n$stackTrace');
+  if (Platform.isAndroid || Platform.isIOS) {
+    try {
+      // Initialization can wait for Android permission dialogs. A short timeout
+      // would let the app start with an uninitialized scheduler, so prayer
+      // notifications would never be created for that session.
+      await NotificationService.init();
+    } catch (error, stackTrace) {
+      debugPrint('Notification initialization failed: $error\n$stackTrace');
+    }
   }
   runApp(const IslamicCompanionApp());
 }
@@ -47,8 +52,9 @@ class IslamicCompanionApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => HadithProvider()),
         ChangeNotifierProvider(create: (_) => QuranProvider()),
         ChangeNotifierProvider(create: (_) => StoriesProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         // يربط AzkarProvider بـ StreakProvider بعد إنشاء الاثنين، بحيث
-        // يُسجَّل النشاط اليومي تلقائياً عند إتمام أي ذكر.
+        // يُسجَّل النشاط اليومي تلقائياً عند إتمام أي ذكر.
         ProxyProvider2<StreakProvider, AzkarProvider, void>(
           update: (ctx, streak, azkar, _) => azkar.streakProvider = streak,
         ),
@@ -63,27 +69,33 @@ class IslamicCompanionApp extends StatelessWidget {
         valueListenable: StorageService.fontScaleNotifier,
         builder: (context, fontScale, _) => ValueListenableBuilder<bool>(
           valueListenable: StorageService.darkModeNotifier,
-          builder: (context, darkMode, _) => MaterialApp(
-            title: 'رفيق المسلم',
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.theme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: darkMode ? ThemeMode.dark : ThemeMode.light,
-            locale: const Locale('ar'),
-            builder: (context, child) {
-              final mediaQuery = MediaQuery.of(context);
-              return MediaQuery(
-                data: mediaQuery.copyWith(
-                  textScaler: TextScaler.linear(fontScale),
-                ),
-                child: Directionality(
-                  textDirection: TextDirection.rtl,
-                  child: child!,
-                ),
-              );
-            },
-            home: const HomeScreen(),
-          ),
+          builder: (context, darkMode, _) {
+            final themeProvider = context.watch<ThemeProvider>();
+            final theme =
+                darkMode ? themeProvider.darkTheme : themeProvider.lightTheme;
+
+            return MaterialApp(
+              title: 'رفيق المسلم',
+              debugShowCheckedModeBanner: false,
+              theme: theme,
+              darkTheme: themeProvider.darkTheme,
+              themeMode: darkMode ? ThemeMode.dark : ThemeMode.light,
+              locale: const Locale('ar'),
+              builder: (context, child) {
+                final mediaQuery = MediaQuery.of(context);
+                return MediaQuery(
+                  data: mediaQuery.copyWith(
+                    textScaler: TextScaler.linear(fontScale),
+                  ),
+                  child: Directionality(
+                    textDirection: TextDirection.rtl,
+                    child: child!,
+                  ),
+                );
+              },
+              home: const HomeScreen(),
+            );
+          },
         ),
       ),
     );

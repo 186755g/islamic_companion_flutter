@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 import '../data/hadith_data.dart';
@@ -8,6 +10,8 @@ class HadithWidgetService {
   static const widgetName = 'HadithWidgetProvider';
 
   static Future<void> update() async {
+    if (!Platform.isAndroid) return;
+
     final hadiths = HadithData.all();
     await HomeWidget.saveWidgetData<int>('hadith_count', hadiths.length);
     for (var index = 0; index < hadiths.length; index++) {
