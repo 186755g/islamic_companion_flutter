@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../data/hadith_data.dart';
+import '../data/prayer_duas_data.dart';
+import '../data/stories_data.dart';
 import '../models/prayer_model.dart';
 import '../providers/points_provider.dart';
 import '../providers/prayer_provider.dart';
@@ -50,15 +55,36 @@ class _OrnateAppBarBackground extends StatelessWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _tabIndex = 0;
+  final PageStorageBucket _pageStorageBucket = PageStorageBucket();
 
   @override
   Widget build(BuildContext context) {
-    final pages = [
-      const _PrayerHomeTab(),
-      const AzkarScreen(),
-      const QuranScreen(),
-      const _LibraryTab(),
-      const ProgressScreen(),
+    final pages = <Widget>[
+      PageStorage(
+        bucket: _pageStorageBucket,
+        key: const PageStorageKey('tab_prayer'),
+        child: const _PrayerHomeTab(),
+      ),
+      PageStorage(
+        bucket: _pageStorageBucket,
+        key: const PageStorageKey('tab_azkar'),
+        child: const AzkarScreen(),
+      ),
+      PageStorage(
+        bucket: _pageStorageBucket,
+        key: const PageStorageKey('tab_quran'),
+        child: const QuranScreen(),
+      ),
+      PageStorage(
+        bucket: _pageStorageBucket,
+        key: const PageStorageKey('tab_library'),
+        child: const _LibraryTab(),
+      ),
+      PageStorage(
+        bucket: _pageStorageBucket,
+        key: const PageStorageKey('tab_progress'),
+        child: const ProgressScreen(),
+      ),
     ];
 
     return Scaffold(
@@ -71,14 +97,42 @@ class _HomeScreenState extends State<HomeScreen> {
             tooltip: 'الإعدادات',
             onPressed: () async {
               await Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                PageRouteBuilder(
+                  pageBuilder: (_, __, ___) => const SettingsScreen(),
+                  transitionsBuilder: (_, animation, __, child) {
+                    const begin = Offset(0.0, 0.06);
+                    const end = Offset.zero;
+                    final tween = Tween(begin: begin, end: end)
+                        .chain(CurveTween(curve: Curves.easeOutCubic));
+                    return SlideTransition(
+                      position: animation.drive(tween),
+                      child: FadeTransition(
+                        opacity: animation,
+                        child: child,
+                      ),
+                    );
+                  },
+                  transitionDuration: const Duration(milliseconds: 220),
+                ),
               );
               if (mounted) setState(() {});
             },
           ),
         ],
       ),
-      body: pages[_tabIndex],
+      body: SafeArea(
+        top: false,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          child: IndexedStack(
+            key: ValueKey<int>(_tabIndex),
+            index: _tabIndex,
+            children: pages,
+          ),
+        ),
+      ),
       bottomNavigationBar: _BottomNavigation(
         selectedIndex: _tabIndex,
         onSelected: (i) => setState(() => _tabIndex = i),
@@ -99,222 +153,44 @@ class _BottomNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<AppThemeTokens>()!;
-    final ornate = tokens.primary == AppColors.ornateGreen;
-    const items = [
-      (icon: Icons.mosque_rounded, label: 'الصلاة', effect: _NavEffect.glow),
-      (
-        icon: Icons.menu_book_rounded,
-        label: 'الأذكار',
-        effect: _NavEffect.pulse
-      ),
-      (
-        icon: Icons.import_contacts_rounded,
-        label: 'القرآن',
-        effect: _NavEffect.lift
-      ),
-      (
-        icon: Icons.local_library_rounded,
-        label: 'المكتبة',
-        effect: _NavEffect.open
-      ),
-      (
-        icon: Icons.emoji_events_rounded,
-        label: 'التقدّم',
-        effect: _NavEffect.bounce
-      ),
+    final selectedColor = tokens.primary;
+    final destinations = [
+      const NavigationDestination(icon: Icon(Icons.mosque_rounded), label: 'الصلاة'),
+      const NavigationDestination(icon: Icon(Icons.menu_book_rounded), label: 'الأذكار'),
+      const NavigationDestination(icon: Icon(Icons.import_contacts_rounded), label: 'القرآن'),
+      const NavigationDestination(icon: Icon(Icons.local_library_rounded), label: 'المكتبة'),
+      const NavigationDestination(icon: Icon(Icons.trending_up_rounded), label: 'التقدم'),
     ];
 
     return SafeArea(
       top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(8, 7, 8, 5),
-        decoration: BoxDecoration(
-          color: tokens.surface,
-          border: ornate
-              ? Border(top: BorderSide(color: tokens.secondary, width: 2))
-              : null,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.deepGreen.withValues(alpha: .1),
-              blurRadius: 12,
-              offset: const Offset(0, -3),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            if (ornate)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: SvgPicture.asset(
-                    tokens.ornamentPattern,
-                    fit: BoxFit.cover,
-                    colorFilter: ColorFilter.mode(
-                      tokens.secondary.withValues(alpha: .12),
-                      BlendMode.srcIn,
-                    ),
-                  ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+        child: NavigationBar(
+          height: 72,
+          elevation: 0,
+          backgroundColor: tokens.surface,
+          indicatorColor: selectedColor.withValues(alpha: 0.12),
+          surfaceTintColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          selectedIndex: selectedIndex,
+          onDestinationSelected: onSelected,
+          destinations: destinations
+              .map(
+                (destination) => NavigationDestination(
+                  icon: destination.icon,
+                  selectedIcon: destination.icon,
+                  label: destination.label,
                 ),
-              ),
-            Row(
-              children: [
-                for (var i = 0; i < items.length; i++)
-                  Expanded(
-                    child: _AnimatedNavItem(
-                      icon: items[i].icon,
-                      label: items[i].label,
-                      effect: items[i].effect,
-                      selected: selectedIndex == i,
-                      ornate: ornate,
-                      onTap: () => onSelected(i),
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-enum _NavEffect { glow, pulse, lift, open, bounce }
-
-class _AnimatedNavItem extends StatefulWidget {
-  final IconData icon;
-  final String label;
-  final _NavEffect effect;
-  final bool selected;
-  final bool ornate;
-  final VoidCallback onTap;
-
-  const _AnimatedNavItem({
-    required this.icon,
-    required this.label,
-    required this.effect,
-    required this.selected,
-    required this.ornate,
-    required this.onTap,
-  });
-
-  @override
-  State<_AnimatedNavItem> createState() => _AnimatedNavItemState();
-}
-
-class _AnimatedNavItemState extends State<_AnimatedNavItem> {
-  bool _pressed = false;
-
-  void _handleTap() {
-    setState(() => _pressed = true);
-    widget.onTap();
-    Future<void>.delayed(const Duration(milliseconds: 220), () {
-      if (mounted) setState(() => _pressed = false);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final active = widget.selected || _pressed;
-    final tokens = Theme.of(context).extension<AppThemeTokens>()!;
-    final color = active
-        ? (widget.ornate ? tokens.secondary : tokens.primary)
-        : tokens.textSecondary;
-    return Semantics(
-      button: true,
-      selected: widget.selected,
-      label: widget.label,
-      child: GestureDetector(
-        onTap: _handleTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 3),
-          decoration: BoxDecoration(
-            color: tokens.secondary.withValues(
-              alpha: widget.selected ? .62 : 0,
-            ),
-            borderRadius: BorderRadius.circular(18),
-            border: widget.ornate
-                ? Border.all(
-                    color: tokens.secondary.withValues(
-                      alpha: widget.selected ? .75 : .18,
-                    ),
-                  )
-                : null,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildAnimatedIcon(color),
-              const SizedBox(height: 2),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 180),
-                style: TextStyle(
-                  color: color,
-                  fontSize: 11,
-                  fontWeight:
-                      widget.selected ? FontWeight.w700 : FontWeight.w500,
-                ),
-                child: Text(widget.label),
-              ),
-            ],
+              )
+              .toList(),
+          overlayColor: WidgetStatePropertyAll(
+            selectedColor.withValues(alpha: 0.06),
           ),
         ),
       ),
     );
-  }
-
-  Widget _buildAnimatedIcon(Color color) {
-    final icon = Icon(widget.icon, color: color, size: 25);
-    switch (widget.effect) {
-      case _NavEffect.glow:
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            boxShadow: widget.selected
-                ? [
-                    BoxShadow(
-                      color: AppColors.gold.withValues(alpha: .35),
-                      blurRadius: 10,
-                      spreadRadius: 1,
-                    ),
-                  ]
-                : const [],
-          ),
-          child: icon,
-        );
-      case _NavEffect.pulse:
-        return AnimatedScale(
-          scale: _pressed ? 1.2 : 1,
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeOutBack,
-          child: icon,
-        );
-      case _NavEffect.lift:
-        return AnimatedSlide(
-          offset: _pressed ? const Offset(0, -.16) : Offset.zero,
-          duration: const Duration(milliseconds: 170),
-          curve: Curves.easeOut,
-          child: icon,
-        );
-      case _NavEffect.open:
-        return AnimatedRotation(
-          turns: _pressed ? -.04 : 0,
-          duration: const Duration(milliseconds: 170),
-          curve: Curves.easeOut,
-          child: icon,
-        );
-      case _NavEffect.bounce:
-        return TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: _pressed ? -4 : 0),
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
-          builder: (context, value, child) =>
-              Transform.translate(offset: Offset(0, value), child: child),
-          child: icon,
-        );
-    }
   }
 }
 
@@ -1129,144 +1005,306 @@ class _LocationPermissionNotice extends StatelessWidget {
   }
 }
 
-/// تبويب "المكتبة" — يجمع مدخلي الأحاديث وقصص الأنبياء والصحابة.
-class _LibraryTab extends StatelessWidget {
+class _LibraryTab extends StatefulWidget {
   const _LibraryTab();
 
   @override
+  State<_LibraryTab> createState() => _LibraryTabState();
+}
+
+class _LibraryTabState extends State<_LibraryTab> {
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<_LibraryCategoryItem> get _categories {
+    final q = _query.trim().toLowerCase();
+    final items = [
+      _LibraryCategoryItem(
+        title: 'الأحاديث',
+        description: 'أقوال النبي ﷺ في الأدب والمعاملات والرحمة والصدق.',
+        icon: Icons.format_quote_rounded,
+        accent: const Color(0xFFB78916),
+        count: HadithData.all().length,
+        onTap: () => Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const HadithScreen())),
+      ),
+      _LibraryCategoryItem(
+        title: 'قصص الأنبياء',
+        description: 'دروسٌ من سيرة الأنبياء في الصبر واليقين والعاقبة.',
+        icon: Icons.auto_stories_rounded,
+        accent: const Color(0xFF557C68),
+        count: StoriesData.all().length,
+        onTap: () => Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const StoriesScreen())),
+      ),
+      _LibraryCategoryItem(
+        title: 'السيرة والصحابة',
+        description: 'قصصٌ من حياة الصحابة والرحلة الإسلامية في العطاء.',
+        icon: Icons.groups_rounded,
+        accent: const Color(0xFF6B7A90),
+        count: StoriesData.all().length,
+        onTap: () => Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const StoriesScreen())),
+      ),
+      _LibraryCategoryItem(
+        title: 'الأخلاق والمعاملات',
+        description: 'نصائحٌ عملية في حسن الخلق والعدل والرحمة.',
+        icon: Icons.handshake_rounded,
+        accent: const Color(0xFF3F6A6D),
+        count: HadithData.all().length,
+        onTap: () => Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const HadithScreen())),
+      ),
+      _LibraryCategoryItem(
+        title: 'الأذكار والأدعية',
+        description: 'مجموعاتٌ هادئةٌ من الأذكار والعبادات اليومية.',
+        icon: Icons.favorite_rounded,
+        accent: const Color(0xFFB87333),
+        count: PrayerDuasData.all().fold<int>(
+          0,
+          (sum, section) => sum + section.duas.length,
+        ),
+        onTap: () => Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const AzkarScreen())),
+      ),
+    ];
+
+    if (q.isEmpty) return items;
+
+    return items.where((item) {
+      final haystack = '${item.title} ${item.description}'.toLowerCase();
+      return haystack.contains(q);
+    }).toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
-      children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppColors.deepGreen, AppColors.mediumGreen],
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-            ),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.deepGreen.withValues(alpha: .16),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .12),
-                  shape: BoxShape.circle,
+    final categories = _categories;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.deepGreen, AppColors.mediumGreen],
+                  begin: Alignment.topRight,
+                  end: Alignment.bottomLeft,
                 ),
-                child: const Icon(
-                  Icons.local_library_rounded,
-                  color: AppColors.lightGold,
-                  size: 30,
-                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.deepGreen.withValues(alpha: .18),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
-              const SizedBox(width: 14),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'المكتبة الإسلامية',
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: .12),
+                      shape: BoxShape.circle,
                     ),
-                    SizedBox(height: 6),
-                    Text(
-                      'اقرأ، تأمل، واستلهم من كنوز الهداية',
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
-                        height: 1.5,
-                      ),
+                    child: const Icon(
+                      Icons.local_library_rounded,
+                      color: AppColors.lightGold,
+                      size: 28,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: const [
+                        Text(
+                          'المكتبة الإسلامية',
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 6),
+                        Text(
+                          'استكشف محتوى هادئًا ومفيدًا',
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 26),
-        const Align(
-          alignment: Alignment.centerRight,
-          child: Text(
-            'استكشف المحتوى',
-            style: TextStyle(
-              color: AppColors.textDark,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
             ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Align(
-          alignment: Alignment.centerRight,
-          child: Text(
-            'مصادر مختارة لرحلة يومية أكثر قربًا وطمأنينة',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-          ),
-        ),
-        const SizedBox(height: 14),
-        _LibraryTile(
-          icon: Icons.auto_stories,
-          title: 'أحاديث المعاملات والأخلاق',
-          subtitle: 'أحاديث مختارة في حسن الخلق والمعاملات، مع البحث والتصنيف.',
-          tag: 'أحاديث',
-          accent: const Color(0xFFB78916),
-          onTap: () => Navigator.of(context)
-              .push(MaterialPageRoute(builder: (_) => const HadithScreen())),
-        ),
-        const SizedBox(height: 14),
-        _LibraryTile(
-          icon: Icons.groups,
-          title: 'قصص الأنبياء والصحابة',
-          subtitle: 'سِيَر وقصص موثقة تحمل دروسًا ملهمة من حياة الصالحين.',
-          tag: 'قصص وسِيَر',
-          accent: const Color(0xFF557C68),
-          onTap: () => Navigator.of(context)
-              .push(MaterialPageRoute(builder: (_) => const StoriesScreen())),
-        ),
-        const SizedBox(height: 18),
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.softGreen.withValues(alpha: .72),
-            borderRadius: BorderRadius.circular(18),
-            border:
-                Border.all(color: AppColors.deepGreen.withValues(alpha: .08)),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.lightbulb_outline, color: AppColors.gold),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'خصص دقائق قليلة كل يوم للقراءة والتدبر.',
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                    color: AppColors.textDark.withValues(alpha: .82),
-                    fontSize: 13,
-                    height: 1.5,
+            const SizedBox(height: 18),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.deepGreen.withValues(alpha: .08)),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.deepGreen.withValues(alpha: .04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: TextField(
+                controller: _searchController,
+                textAlign: TextAlign.right,
+                textDirection: Directionality.of(context),
+                onChanged: (value) => setState(() => _query = value),
+                decoration: InputDecoration(
+                  hintText: 'ابحث في المكتبة...',
+                  hintStyle: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 14,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    color: AppColors.deepGreen,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 18),
+            Expanded(
+              child: categories.isEmpty
+                  ? _EmptyLibraryState(
+                      query: _query,
+                      onClear: () {
+                        _searchController.clear();
+                        setState(() => _query = '');
+                      },
+                    )
+                  : ListView.separated(
+                      itemCount: categories.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final item = categories[index];
+                        return _LibraryTile(
+                          icon: item.icon,
+                          title: item.title,
+                          subtitle: item.description,
+                          count: item.count,
+                          accent: item.accent,
+                          onTap: item.onTap,
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
-      ],
+      ),
+    );
+  }
+}
+
+class _LibraryCategoryItem {
+  final String title;
+  final String description;
+  final IconData icon;
+  final Color accent;
+  final int count;
+  final VoidCallback onTap;
+
+  const _LibraryCategoryItem({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.accent,
+    required this.count,
+    required this.onTap,
+  });
+}
+
+class _EmptyLibraryState extends StatelessWidget {
+  final String query;
+  final VoidCallback onClear;
+
+  const _EmptyLibraryState({
+    required this.query,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: AppColors.deepGreen.withValues(alpha: .08)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 68,
+              height: 68,
+              decoration: BoxDecoration(
+                color: AppColors.softGreen.withValues(alpha: .7),
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: const Icon(
+                Icons.search_off_rounded,
+                color: AppColors.deepGreen,
+                size: 30,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              query.isEmpty ? 'لا توجد نتائج الآن' : 'لا توجد نتائج لـ "$query"',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.textDark,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'جرّب كلمة أخرى أو امسح البحث للعودة إلى كل المحتوى.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 12,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 14),
+            TextButton.icon(
+              onPressed: onClear,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('إعادة العرض'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1275,25 +1313,27 @@ class _LibraryTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
-  final String tag;
+  final int count;
   final Color accent;
   final VoidCallback onTap;
 
-  const _LibraryTile(
-      {required this.icon,
-      required this.title,
-      required this.subtitle,
-      required this.tag,
-      required this.accent,
-      required this.onTap});
+  const _LibraryTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.count,
+    required this.accent,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
       elevation: 1,
-      clipBehavior: Clip.antiAlias,
       child: InkWell(
+        borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -1305,23 +1345,39 @@ class _LibraryTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 9, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: accent.withValues(alpha: .1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        tag,
-                        style: TextStyle(
-                          color: accent,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: accent.withValues(alpha: .12),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            '$count',
+                            style: TextStyle(
+                              color: accent,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'محتوى',
+                          style: TextStyle(
+                            color: accent,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 9),
+                    const SizedBox(height: 10),
                     Text(
                       title,
                       textAlign: TextAlign.right,
@@ -1331,7 +1387,7 @@ class _LibraryTile extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 6),
                     Text(
                       subtitle,
                       textAlign: TextAlign.right,
@@ -1352,7 +1408,7 @@ class _LibraryTile extends StatelessWidget {
                   color: accent.withValues(alpha: .12),
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: Icon(icon, color: accent, size: 29),
+                child: Icon(icon, color: accent, size: 28),
               ),
             ],
           ),
@@ -1678,36 +1734,72 @@ class _PrayerCardPattern extends CustomPainter {
       oldDelegate.color != color;
 }
 
-class _NextPrayerCard extends StatelessWidget {
+class _NextPrayerCard extends StatefulWidget {
   final PrayerProvider prayerProv;
   const _NextPrayerCard({required this.prayerProv});
+
+  @override
+  State<_NextPrayerCard> createState() => _NextPrayerCardState();
+}
+
+class _NextPrayerCardState extends State<_NextPrayerCard> {
+  late final Timer _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  String _remainingText(DateTime target) {
+    final remaining = target.difference(DateTime.now());
+    if (remaining <= Duration.zero) return 'الآن';
+    final hours = remaining.inHours;
+    final minutes = remaining.inMinutes.remainder(60);
+    final seconds = remaining.inSeconds.remainder(60);
+    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
 
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final upcoming = FardPrayer.values
-        .map((prayer) => (prayer: prayer, time: prayerProv.timeFor(prayer)))
+        .map((prayer) => (prayer: prayer, time: widget.prayerProv.timeFor(prayer)))
         .where((entry) => entry.time != null && entry.time!.isAfter(now))
         .toList();
     final next = upcoming.isEmpty ? null : upcoming.first;
     final visual = next == null
         ? _PrayerVisual.forPrayer(FardPrayer.fajr)
         : _PrayerVisual.forPrayer(next.prayer);
+    final countdown = next == null
+        ? 'غدًا'
+        : _remainingText(next.time!);
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.softGreen,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.deepGreen.withValues(alpha: .12)),
+        color: AppColors.softGreen.withValues(alpha: 0.8),
+        borderRadius: AppRadius.largeAll,
+        border: Border.all(
+          color: AppColors.deepGreen.withValues(alpha: 0.12),
+          width: 1,
+        ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .75),
+              color: AppColors.white.withValues(alpha: 0.8),
               shape: BoxShape.circle,
             ),
             child: Icon(visual.icon, color: visual.accent, size: 26),
@@ -1717,11 +1809,14 @@ class _NextPrayerCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const Text('الصلاة القادمة',
-                    style: TextStyle(
-                        color: AppColors.deepGreen,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600)),
+                const Text(
+                  'الصلاة القادمة',
+                  style: TextStyle(
+                    color: AppColors.deepGreen,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   next == null ? 'الفجر غدًا' : next.prayer.arabicName,
@@ -1732,15 +1827,40 @@ class _NextPrayerCard extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  next?.time == null
-                      ? 'يتم تحديث المواقيت يوميًا'
-                      : DateFormat.jm('ar').format(next!.time!),
-                  style: TextStyle(
-                      color: AppColors.textDark.withValues(alpha: .7),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      next?.time == null
+                          ? 'يتم تحديث المواقيت يوميًا'
+                          : DateFormat.jm('ar').format(next!.time!),
+                      style: TextStyle(
+                        color: AppColors.textDark.withValues(alpha: 0.7),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.deepGreen.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        'العدّ التنازلي: $countdown',
+                        style: const TextStyle(
+                          color: AppColors.deepGreen,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

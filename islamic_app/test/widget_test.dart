@@ -27,6 +27,39 @@ void main() {
     expect(find.text('العشاء'), findsOneWidget);
   });
 
+  testWidgets('shows a calmer azkar layout with progress and next action',
+      (WidgetTester tester) async {
+    await StorageService.init();
+    await tester.pumpWidget(const IslamicCompanionApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('الأذكار'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('التقدم'), findsWidgets);
+    expect(find.text('التالي'), findsWidgets);
+    expect(find.text('إعادة التعيين'), findsWidgets);
+  });
+
+  testWidgets('shows the calm progress dashboard and points logic',
+      (WidgetTester tester) async {
+    await StorageService.init();
+    await tester.pumpWidget(const IslamicCompanionApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('التقدم'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('رحلتك الإيمانية'), findsOneWidget);
+    expect(find.text('أيام النشاط'), findsOneWidget);
+    expect(find.text('السلسلة الحالية'), findsOneWidget);
+    expect(find.text('الصلاة المكتملة'), findsNothing);
+    expect(find.text('الفريضة = 10 نقاط'), findsOneWidget);
+    expect(find.text('السنة = 5 نقاط'), findsOneWidget);
+    expect(find.text('استمر، القليل الدائم خير من الكثير المنقطع.'),
+        findsOneWidget);
+  });
+
   testWidgets('shows country and governorate selection in settings',
       (WidgetTester tester) async {
     await StorageService.init();

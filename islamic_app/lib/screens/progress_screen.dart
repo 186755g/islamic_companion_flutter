@@ -2,7 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/prayer_model.dart';
 import '../providers/points_provider.dart';
+import '../providers/prayer_provider.dart';
 import '../providers/streak_provider.dart';
 import '../theme/app_theme.dart';
 
@@ -13,8 +15,13 @@ class ProgressScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final points = context.watch<PointsProvider>();
     final streak = context.watch<StreakProvider>().streak;
+    final prayer = context.watch<PrayerProvider>();
     final remaining =
         (points.weeklyTarget - points.weeklyPoints).clamp(0, 1 << 30);
+    final completedPrayers = FardPrayer.values
+            .where(prayer.fardChecked)
+            .length +
+        SunnahPrayer.values.where(prayer.sunnahChecked).length;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -23,10 +30,26 @@ class ProgressScreen extends StatelessWidget {
           padding:
               EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding, 28),
           children: [
-            _ProgressHero(points: points),
+            _ProgressHero(
+              weeklyPoints: points.weeklyPoints,
+              weeklyTarget: points.weeklyTarget,
+              ratio: points.progressRatio,
+              activeDays: streak.totalActiveDays,
+              currentStreak: streak.currentStreak,
+              completedPrayers: completedPrayers,
+            ),
             const SizedBox(height: 18),
             Row(
               children: [
+                Expanded(
+                  child: _StatCard(
+                    icon: Icons.calendar_month_rounded,
+                    label: 'أيام النشاط',
+                    value: '${streak.totalActiveDays} يوم',
+                    color: AppColors.mediumGreen,
+                  ),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: _StatCard(
                     icon: Icons.local_fire_department_rounded,
@@ -38,10 +61,10 @@ class ProgressScreen extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: _StatCard(
-                    icon: Icons.calendar_month_rounded,
-                    label: 'أيام النشاط',
-                    value: '${streak.totalActiveDays} يوم',
-                    color: AppColors.mediumGreen,
+                    icon: Icons.done_all_rounded,
+                    label: 'الصلوات المكتملة',
+                    value: '$completedPrayers',
+                    color: AppColors.deepGreen,
                   ),
                 ),
               ],
@@ -63,25 +86,28 @@ class ProgressScreen extends StatelessWidget {
                         const Icon(Icons.auto_awesome,
                             color: AppColors.gold, size: 22),
                         const SizedBox(width: 8),
-                        Text('كيف تجمع النقاط؟',
+                        Text('كيف تم احتساب النقاط؟',
                             style: Theme.of(context).textTheme.titleMedium),
                       ],
                     ),
                     const SizedBox(height: 10),
                     const _RuleRow(
                       icon: Icons.mosque_rounded,
-                      label: 'كل صلاة فريضة',
-                      points: '+10',
+                      label: 'الفريضة',
+                      points: '10 نقاط',
+                      value: 'لكل صلاة فريضة مكتملة',
                     ),
                     const _RuleRow(
                       icon: Icons.favorite_rounded,
-                      label: 'كل سنة راتبة',
-                      points: '+5',
+                      label: 'السنة',
+                      points: '5 نقاط',
+                      value: 'لكل سنة راتبة مكتملة',
                     ),
                     const _RuleRow(
-                      icon: Icons.menu_book_rounded,
-                      label: 'استمر في وردك اليومي',
+                      icon: Icons.lightbulb_rounded,
+                      label: 'الاستمرارية',
                       points: 'بركة',
+                      value: 'استمر، القليل الدائم خير من الكثير المنقطع.',
                     ),
                   ],
                 ),
@@ -95,19 +121,30 @@ class ProgressScreen extends StatelessWidget {
 }
 
 class _ProgressHero extends StatelessWidget {
-  final PointsProvider points;
+  final int weeklyPoints;
+  final int weeklyTarget;
+  final double ratio;
+  final int activeDays;
+  final int currentStreak;
+  final int completedPrayers;
 
-  const _ProgressHero({required this.points});
+  const _ProgressHero({
+    required this.weeklyPoints,
+    required this.weeklyTarget,
+    required this.ratio,
+    required this.activeDays,
+    required this.currentStreak,
+    required this.completedPrayers,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final ratio = points.progressRatio;
-    final isComplete = !points.isBelowTarget;
+    final isComplete = weeklyPoints >= weeklyTarget;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: Container(
-        constraints: const BoxConstraints(minHeight: 270),
+        constraints: const BoxConstraints(minHeight: 290),
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [AppColors.deepGreen, AppColors.mediumGreen],
@@ -120,15 +157,13 @@ class _ProgressHero extends StatelessWidget {
             const Positioned.fill(
                 child: CustomPaint(painter: _IslamicPatternPainter())),
             Padding(
-              padding: const EdgeInsets.fromLTRB(22, 20, 22, 22),
+              padding: const EdgeInsets.fromLTRB(22, 20, 22, 18),
               child: Column(
                 children: [
                   Row(
                     children: [
                       Icon(
-                        isComplete
-                            ? Icons.emoji_events_rounded
-                            : Icons.nights_stay_rounded,
+                        isComplete ? Icons.emoji_events_rounded : Icons.nights_stay_rounded,
                         color: AppColors.lightGold,
                         size: 28,
                       ),
@@ -146,15 +181,15 @@ class _ProgressHero extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 18),
                   TweenAnimationBuilder<double>(
                     tween: Tween(begin: 0, end: ratio),
                     duration: const Duration(milliseconds: 900),
                     curve: Curves.easeOutCubic,
                     builder: (context, value, _) {
                       return SizedBox(
-                        width: 132,
-                        height: 132,
+                        width: 136,
+                        height: 136,
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
@@ -171,16 +206,16 @@ class _ProgressHero extends StatelessWidget {
                             Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text('${points.weeklyPoints}',
+                                Text('$weeklyPoints',
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 30,
                                       fontWeight: FontWeight.bold,
                                     )),
-                                Text('من ${points.weeklyTarget}',
+                                Text('نقاط',
                                     style: TextStyle(
                                       color: Colors.white.withValues(alpha: .8),
-                                      fontSize: 12,
+                                      fontSize: 11,
                                     )),
                               ],
                             ),
@@ -189,7 +224,7 @@ class _ProgressHero extends StatelessWidget {
                       );
                     },
                   ),
-                  const SizedBox(height: 13),
+                  const SizedBox(height: 12),
                   Text(
                     isComplete
                         ? 'ما شاء الله، حققت هدفك الأسبوعي'
@@ -203,11 +238,84 @@ class _ProgressHero extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _CompactMetric(
+                          icon: Icons.done_all_rounded,
+                          label: 'الصلوات',
+                          value: '$completedPrayers',
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _CompactMetric(
+                          icon: Icons.local_fire_department_rounded,
+                          label: 'السلسلة',
+                          value: '$currentStreak',
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _CompactMetric(
+                          icon: Icons.calendar_month_rounded,
+                          label: 'نشاط',
+                          value: '$activeDays',
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CompactMetric extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _CompactMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .09),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: AppColors.lightGold, size: 18),
+          const SizedBox(height: 5),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .75),
+              fontSize: 10,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -309,8 +417,8 @@ class _MotivationCard extends StatelessWidget {
             Expanded(
               child: Text(
                 achieved
-                    ? 'استمر على هذا الطريق، ثباتك هو أجمل إنجاز.'
-                    : 'باقي $remaining نقطة فقط. اغتنم الصلاة القادمة وواصل التقدم.',
+                    ? 'استمر، القليل الدائم خير من الكثير المنقطع.'
+                    : 'باقي $remaining نقطة فقط. استمر، القليل الدائم خير من الكثير المنقطع.',
                 textAlign: TextAlign.right,
                 style: const TextStyle(
                     color: AppColors.textDark, fontWeight: FontWeight.w600),
@@ -327,11 +435,13 @@ class _RuleRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String points;
+  final String value;
 
   const _RuleRow({
     required this.icon,
     required this.label,
     required this.points,
+    required this.value,
   });
 
   @override
@@ -340,11 +450,30 @@ class _RuleRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(
         children: [
-          Text(points,
-              style: const TextStyle(
-                  color: AppColors.success, fontWeight: FontWeight.bold)),
-          const Spacer(),
-          Text(label),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '$label = $points',
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: AppColors.textDark,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  value,
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(width: 10),
           Icon(icon, color: AppColors.deepGreen, size: 20),
         ],

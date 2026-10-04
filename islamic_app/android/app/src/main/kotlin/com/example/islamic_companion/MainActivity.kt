@@ -65,16 +65,16 @@ class MainActivity : FlutterActivity() {
             fajrChannelId to "أذان الفجر",
             regularChannelId to "الأذان"
         ).forEach { (id, name) ->
+            val rawName = if (id == fajrChannelId) "adhan_fajr" else "adhan_regular"
+            val resourceUri = android.net.Uri.parse("android.resource://$packageName/raw/$rawName")
             val channel = manager.getNotificationChannel(id)
                 ?: NotificationChannel(id, name, NotificationManager.IMPORTANCE_HIGH)
+
             channel.setBypassDnd(true)
-            channel.setSound(
-                android.net.Uri.parse(
-                    "android.resource://$packageName/raw/" +
-                        if (id == fajrChannelId) "adhan_fajr" else "adhan_regular"
-                ),
-                audioAttributes
-            )
+            channel.enableVibration(true)
+            channel.lightColor = android.graphics.Color.parseColor("#D4AF37")
+            channel.setSound(resourceUri, audioAttributes)
+            channel.description = "صوت الأذان عند دخول وقت الصلاة"
             manager.createNotificationChannel(channel)
         }
     }

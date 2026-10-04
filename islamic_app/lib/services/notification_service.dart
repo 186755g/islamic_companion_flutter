@@ -127,7 +127,6 @@ class NotificationService {
     await androidImpl?.requestExactAlarmsPermission();
     _exactAlarmsAllowed =
         await androidImpl?.canScheduleExactNotifications() ?? false;
-    await _createNotificationChannels(androidImpl);
     if (Platform.isAndroid) {
       try {
         await _nativeChannel.invokeMethod<void>('prepareAdhanChannels');
@@ -471,6 +470,24 @@ class NotificationService {
       NotificationDetails(android: details),
     );
     debugPrint('[ADHAN] Manual notification triggered');
+  }
+
+  static Future<void> debugScheduleTestAdhan({
+    Duration delay = const Duration(seconds: 15),
+    FardPrayer prayer = FardPrayer.fajr,
+  }) async {
+    if (!kDebugMode) return;
+    final dateTime = DateTime.now().add(delay);
+    debugPrint(
+        '[ADHAN] Debug test adhan scheduled for $dateTime using ${prayer.arabicName}');
+    await _scheduleAt(
+      id: 99999,
+      title: 'اختبار الأذان (${prayer.arabicName})',
+      body: 'هذا إشعار اختبار فقط، لاستخدامه أثناء التطوير.',
+      dateTime: dateTime,
+      prayer: prayer,
+      isAdhan: true,
+    );
   }
 }
 

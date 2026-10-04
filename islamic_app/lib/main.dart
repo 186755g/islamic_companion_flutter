@@ -15,6 +15,7 @@ import 'services/notification_service.dart';
 import 'services/storage_service.dart';
 import 'services/hadith_widget_service.dart';
 import 'screens/home_screen.dart';
+import 'theme/app_theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ar');
@@ -71,21 +72,27 @@ class IslamicCompanionApp extends StatelessWidget {
           valueListenable: StorageService.darkModeNotifier,
           builder: (context, darkMode, _) {
             final themeProvider = context.watch<ThemeProvider>();
-            final theme =
-                darkMode ? themeProvider.darkTheme : themeProvider.lightTheme;
+            final storedThemeMode = StorageService.getThemeModeSetting();
+            final effectiveThemeMode = storedThemeMode == ThemeMode.system
+                ? ThemeMode.system
+                : (darkMode ? ThemeMode.dark : ThemeMode.light);
+            final theme = effectiveThemeMode == ThemeMode.dark
+                ? themeProvider.darkTheme
+                : themeProvider.lightTheme;
 
             return MaterialApp(
               title: 'رفيق المسلم',
               debugShowCheckedModeBanner: false,
               theme: theme,
               darkTheme: themeProvider.darkTheme,
-              themeMode: darkMode ? ThemeMode.dark : ThemeMode.light,
+              themeMode: effectiveThemeMode,
               locale: const Locale('ar'),
               builder: (context, child) {
                 final mediaQuery = MediaQuery.of(context);
+                final safeTextScale = fontScale.clamp(0.85, AppAccessibility.maxTextScale);
                 return MediaQuery(
                   data: mediaQuery.copyWith(
-                    textScaler: TextScaler.linear(fontScale),
+                    textScaler: TextScaler.linear(safeTextScale),
                   ),
                   child: Directionality(
                     textDirection: TextDirection.rtl,

@@ -48,18 +48,24 @@ class AzkarProvider extends ChangeNotifier {
   }
 
   void _loadProgress() {
-    for (final z in [..._morning, ..._evening]) {
+    for (final z in [..._morning, ..._evening, ..._prayer]) {
       z.currentCount = StorageService.getZikrCount(z.id);
     }
   }
 
   Future<void> tapZikr(Zikr zikr) async {
     if (zikr.isCompleted) return;
-    zikr.increment();
+    final completed = zikr.increment();
     await StorageService.setZikrCount(zikr.id, zikr.currentCount);
-    if (zikr.isCompleted) {
+    if (completed) {
       streakProvider?.registerActivity();
     }
+    notifyListeners();
+  }
+
+  Future<void> resetZikr(Zikr zikr) async {
+    zikr.reset();
+    await StorageService.setZikrCount(zikr.id, 0);
     notifyListeners();
   }
 

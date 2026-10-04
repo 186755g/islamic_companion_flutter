@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../data/egypt_governorates.dart';
 import '../providers/prayer_provider.dart';
-import '../providers/theme_provider.dart';
 import '../services/notification_service.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
@@ -29,7 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _notificationSoundPath;
   String _prayerCardAnimation = 'slide';
   double _fontScale = 1.0;
-  bool _darkMode = false;
+  ThemeMode _themeMode = ThemeMode.light;
   bool _savingAdhanSettings = false;
   AdhanStatus? _adhanStatus;
   final _audioPlayer = AudioPlayer();
@@ -47,7 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _notificationSoundPath = StorageService.getNotificationSoundPath();
     _prayerCardAnimation = StorageService.getPrayerCardAnimation();
     _fontScale = StorageService.getFontScale();
-    _darkMode = StorageService.getDarkMode();
+    _themeMode = StorageService.getThemeModeSetting();
     _refreshAdhanStatus();
     Future<void>.delayed(const Duration(seconds: 2), _refreshAdhanStatus);
   }
@@ -83,11 +82,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return egyptGovernorates
         .where((item) => item.name.contains(query))
         .toList();
-  }
-
-  bool _matches(String value) {
-    final query = _searchController.text.trim();
-    return query.isEmpty || value.contains(query);
   }
 
   void _clearSearch() {
@@ -168,11 +162,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _setFontScale(double value) async {
     setState(() => _fontScale = value);
     await StorageService.setFontScale(value);
-  }
-
-  Future<void> _setDarkMode(bool enabled) async {
-    setState(() => _darkMode = enabled);
-    await StorageService.setDarkMode(enabled);
   }
 
   Future<void> _pickAdhanFile({required bool fajr}) async {
@@ -303,17 +292,334 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final prayer = context.watch<PrayerProvider>();
-    final themeProvider = context.watch<ThemeProvider>();
     final selected =
         _selectedGovernorate ?? prayer.selectedGovernorate ?? 'اختر المحافظة';
-    final showLocationSection = _matches('الموقع مواقيت الصلاة مصر المحافظة');
-    final showAudioSection = _matches('الصوت الإشعارات الأذان الفجر');
-    final showPrayerDisplaySection = _matches(
-      'شكل حركة التقليب الصلاة الصلوات الأسهم البطاقة',
-    );
-    final showRightsSection = _matches(
-      'حقوق التطبيق صانع البرنامج المطور محمد احمد التواصل البريد واتساب',
-    );
+    final query = _searchController.text.trim().toLowerCase();
+
+    final sections = <_SettingsSectionData>[
+      _SettingsSectionData(
+        title: 'الصلاة',
+        icon: Icons.mosque_rounded,
+        rows: [
+          _SettingRowData(
+            title: 'الموقع',
+            searchText: 'الموقع الحالي مكة المحافظة',
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('حدد مصدر حساب مواقيت الصلاة', textAlign: TextAlign.right),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: prayer.requestingLocationPermission
+                            ? null
+                            : _useDeviceLocation,
+                        icon: const Icon(Icons.my_location_rounded),
+                        label: const Text('موقع الهاتف'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _useMakkahLocation,
+                        icon: const Icon(Icons.location_city_rounded),
+                        label: const Text('مكة'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          _SettingRowData(
+            title: 'المحافظة',
+            searchText: 'المحافظة مصر القاهرة',
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                DropdownButtonFormField<String>(
+                  value: selected == 'اختر المحافظة' ? null : selected,
+                  decoration: const InputDecoration(
+                    labelText: 'المحافظة',
+                    prefixIcon: Icon(Icons.location_city_rounded),
+                  ),
+                  hint: const Text('اختر المحافظة'),
+                  items: egyptGovernorates
+                      .map((item) => DropdownMenuItem(
+                            value: item.name,
+                            child: Text(item.name),
+                          ))
+                      .toList(),
+                  onChanged: (name) {
+                    if (name == null) return;
+                    final governorate =
+                        egyptGovernorates.firstWhere((item) => item.name == name);
+                    _selectGovernorate(governorate);
+                  },
+                ),
+                if (_searchController.text.trim().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ..._filteredGovernorates.map(
+                    (item) => ListTile(
+                      dense: true,
+                      title: Text(item.name, textAlign: TextAlign.right),
+                      leading: const Icon(Icons.location_on_outlined),
+                      onTap: () => _selectGovernorate(item),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          _SettingRowData(
+            title: 'تنبيهات الصلاة',
+            searchText: 'تنبيهات الصلاة الإشعارات الأذان',
+            content: SwitchListTile.adaptive(
+              value: _adhanEnabled,
+              onChanged: _setAdhanEnabled,
+              title: const Text('تنبيهات الصلاة'),
+              subtitle: const Text('تشغيل أو إيقاف صوت الأذان والتذكير التلقائي.'),
+            ),
+          ),
+        ],
+      ),
+      _SettingsSectionData(
+        title: 'الأذان',
+        icon: Icons.notifications_active_rounded,
+        rows: [
+          _SettingRowData(
+            title: 'مستوى الصوت',
+            searchText: 'الأذان مستوى الصوت',
+            content: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton.icon(
+                      onPressed: _showAdhanStatus,
+                      icon: const Icon(Icons.info_outline_rounded),
+                      label: const Text('حالة الأذان'),
+                    ),
+                    Text('${(_adhanVolume * 100).round()}%',
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                Slider(
+                  value: _adhanVolume,
+                  min: 0,
+                  max: 1,
+                  divisions: 20,
+                  label: '${(_adhanVolume * 100).round()}%',
+                  onChanged: _setAdhanVolume,
+                ),
+              ],
+            ),
+          ),
+          _SettingRowData(
+            title: 'حفظ الإعدادات',
+            searchText: 'حفظ إعدادات الأذان',
+            content: FilledButton.icon(
+              onPressed: _savingAdhanSettings ? null : _saveAdhanSettings,
+              icon: const Icon(Icons.save_alt_rounded),
+              label: Text(_savingAdhanSettings ? 'جارٍ الحفظ...' : 'حفظ إعدادات الأذان'),
+            ),
+          ),
+          _SettingRowData(
+            title: 'أذان الفجر',
+            searchText: 'أذان الفجر صوت',
+            content: _soundLibrarySection(
+              title: 'أذان الفجر',
+              paths: _fajrAdhanPaths,
+              selectedPath: _selectedFajrAdhanPath,
+              fajr: true,
+            ),
+          ),
+          _SettingRowData(
+            title: 'أذان الصلوات',
+            searchText: 'أذان الصلوات صوت',
+            content: _soundLibrarySection(
+              title: 'أذان الصلوات',
+              paths: _regularAdhanPaths,
+              selectedPath: _selectedRegularAdhanPath,
+              fajr: false,
+            ),
+          ),
+          _SettingRowData(
+            title: 'صوت الإشعارات',
+            searchText: 'صوت الإشعارات',
+            content: _notificationSoundTile(),
+          ),
+        ],
+      ),
+      _SettingsSectionData(
+        title: 'المظهر',
+        icon: Icons.palette_rounded,
+        rows: [
+          _SettingRowData(
+            title: 'النمط',
+            searchText: 'المظهر فاتح داكن حسب النظام',
+            content: Column(
+              children: [
+                RadioListTile<ThemeMode>(
+                  value: ThemeMode.light,
+                  groupValue: _themeMode,
+                  title: const Text('فاتح'),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() => _themeMode = value);
+                    StorageService.setThemeModeSetting(value);
+                  },
+                ),
+                RadioListTile<ThemeMode>(
+                  value: ThemeMode.dark,
+                  groupValue: _themeMode,
+                  title: const Text('داكن'),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() => _themeMode = value);
+                    StorageService.setThemeModeSetting(value);
+                  },
+                ),
+                RadioListTile<ThemeMode>(
+                  value: ThemeMode.system,
+                  groupValue: _themeMode,
+                  title: const Text('حسب النظام'),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() => _themeMode = value);
+                    StorageService.setThemeModeSetting(value);
+                  },
+                ),
+              ],
+            ),
+          ),
+          _SettingRowData(
+            title: 'حجم الخط',
+            searchText: 'حجم الخط القراءة',
+            content: Column(
+              children: [
+                Slider(
+                  value: _fontScale,
+                  min: 0.85,
+                  max: 1.35,
+                  divisions: 10,
+                  label: '${(_fontScale * 100).round()}%',
+                  onChanged: _setFontScale,
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('${(_fontScale * 100).round()}%',
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+          _SettingRowData(
+            title: 'حركة بطاقات الصلاة',
+            searchText: 'حركة بطاقات الصلاة انزلاق تلاشي',
+            content: DropdownButtonFormField<String>(
+              value: _prayerCardAnimation,
+              decoration: const InputDecoration(
+                labelText: 'حركة بطاقات الصلاة',
+                prefixIcon: Icon(Icons.animation_rounded),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'slide', child: Text('انزلاق')),
+                DropdownMenuItem(value: 'fade', child: Text('تلاشي')),
+                DropdownMenuItem(value: 'scale', child: Text('تكبير')),
+                DropdownMenuItem(value: 'rotation', child: Text('دوران')),
+              ],
+              onChanged: _setPrayerCardAnimation,
+            ),
+          ),
+        ],
+      ),
+      _SettingsSectionData(
+        title: 'القرآن والأذكار',
+        icon: Icons.menu_book_rounded,
+        rows: [
+          _SettingRowData(
+            title: 'إعدادات القراءة',
+            searchText: 'القرآن قراءة النص',
+            content: ListTile(
+              title: const Text('إعدادات القراءة'),
+              subtitle: const Text('حجم الخط وتباعد النص يتم ضبطهما من المظهر العام.'),
+              leading: const Icon(Icons.chrome_reader_mode_rounded),
+            ),
+          ),
+          _SettingRowData(
+            title: 'إعدادات الأذكار',
+            searchText: 'الأذكار حفظ تقدم الأذكار',
+            content: ListTile(
+              title: const Text('إعدادات الأذكار'),
+              subtitle: const Text('يتم حفظ التقدم تلقائيًا داخل التطبيق عند كل تغيير.'),
+              leading: const Icon(Icons.auto_awesome_rounded),
+            ),
+          ),
+        ],
+      ),
+      _SettingsSectionData(
+        title: 'التطبيق',
+        icon: Icons.info_outline_rounded,
+        rows: [
+          _SettingRowData(
+            title: 'الخصوصية',
+            searchText: 'الخصوصية بيانات محلية',
+            content: ListTile(
+              title: const Text('الخصوصية'),
+              subtitle: const Text('يتم حفظ البيانات محليًا داخل التطبيق دون مشاركة خارجية.'),
+              leading: const Icon(Icons.privacy_tip_outlined),
+            ),
+          ),
+          _SettingRowData(
+            title: 'عن التطبيق',
+            searchText: 'عن التطبيق وصف',
+            content: ListTile(
+              title: const Text('عن التطبيق'),
+              subtitle: const Text('رفيق المسلم — تطبيق إسلامي لمتابعة الصلاة، الأذكار، والقرآن.'),
+              leading: const Icon(Icons.info_rounded),
+            ),
+          ),
+          _SettingRowData(
+            title: 'التواصل',
+            searchText: 'التواصل البريد واتساب',
+            content: ListTile(
+              title: const Text('التواصل'),
+              subtitle: const Text('mohamedd0103319@gmail.com'),
+              leading: const Icon(Icons.email_outlined),
+              onTap: () => _openContact(
+                Uri(
+                  scheme: 'mailto',
+                  path: 'mohamedd0103319@gmail.com',
+                  queryParameters: {'subject': 'التواصل من تطبيق رفيق المسلم'},
+                ),
+                'تعذر فتح تطبيق البريد الإلكتروني',
+              ),
+            ),
+          ),
+          _SettingRowData(
+            title: 'إصدار التطبيق',
+            searchText: 'إصدار التطبيق نسخة',
+            content: const ListTile(
+              title: Text('إصدار التطبيق'),
+              subtitle: Text('1.0.0+1'),
+              leading: Icon(Icons.app_registration_rounded),
+            ),
+          ),
+        ],
+      ),
+    ];
+
+    final visibleSections = sections.where((section) {
+      if (query.isEmpty) return true;
+      final titleMatch = section.title.toLowerCase().contains(query);
+      final rowMatch = section.rows.any(
+        (row) => row.searchText.toLowerCase().contains(query),
+      );
+      return titleMatch || rowMatch;
+    }).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -327,480 +633,78 @@ class _SettingsScreenState extends State<SettingsScreen> {
             controller: _searchController,
             textInputAction: TextInputAction.search,
             decoration: InputDecoration(
-              hintText: 'ابحث في الإعدادات أو المحافظات',
-              prefixIcon: const Icon(Icons.search),
+              hintText: 'ابحث في الإعدادات...',
+              prefixIcon: const Icon(Icons.search_rounded),
               suffixIcon: _searchController.text.isEmpty
                   ? null
                   : IconButton(
-                      tooltip: 'مسح البحث',
-                      icon: const Icon(Icons.clear),
+                      icon: const Icon(Icons.clear_rounded),
                       onPressed: _clearSearch,
                     ),
               filled: true,
+              fillColor: Theme.of(context).colorScheme.surface,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(18),
                 borderSide: BorderSide.none,
               ),
             ),
             onChanged: (_) => setState(() {}),
           ),
-          const SizedBox(height: 24),
-          if (showLocationSection) ...[
-            _sectionTitle(context, 'الموقع ومواقيت الصلاة', Icons.location_on),
-            const SizedBox(height: 8),
-            const Text('اختر مصدر الموقع لحساب المواقيت المناسبة لك.'),
-            const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const InputDecorator(
-                      decoration: InputDecoration(
-                        labelText: 'الدولة',
-                        prefixIcon: Icon(Icons.public),
-                      ),
-                      child: Text('مصر'),
-                    ),
-                    const SizedBox(height: 12),
-                    FilledButton.icon(
-                      onPressed: prayer.requestingLocationPermission
-                          ? null
-                          : _useDeviceLocation,
-                      icon: prayer.requestingLocationPermission
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.my_location),
-                      label: Text(prayer.locationPermissionPermanentlyDenied
-                          ? 'فتح إعدادات الموقع'
-                          : 'استخدام موقع الهاتف الحالي'),
-                    ),
-                    TextButton.icon(
-                      onPressed: _useMakkahLocation,
-                      icon: const Icon(Icons.location_city_outlined),
-                      label: const Text('استخدام مكة كموقع افتراضي'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: selected == 'اختر المحافظة' ? null : selected,
-              decoration: const InputDecoration(
-                labelText: 'المحافظة',
-                prefixIcon: Icon(Icons.location_city),
-              ),
-              hint: const Text('اختر المحافظة'),
-              items: egyptGovernorates
-                  .map((item) => DropdownMenuItem(
-                        value: item.name,
-                        child: Text(item.name),
-                      ))
-                  .toList(),
-              onChanged: (name) {
-                if (name == null) return;
-                final governorate =
-                    egyptGovernorates.firstWhere((item) => item.name == name);
-                _selectGovernorate(governorate);
-              },
-            ),
-            if (_searchController.text.trim().isNotEmpty) ...[
-              const SizedBox(height: 8),
-              ..._filteredGovernorates.map(
-                (item) => Card(
-                  child: ListTile(
-                    title: Text(item.name),
-                    leading: const Icon(Icons.location_on_outlined),
-                    onTap: () => _selectGovernorate(item),
-                  ),
-                ),
-              ),
-              if (_filteredGovernorates.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Text('لا توجد محافظة بهذا الاسم'),
-                ),
-            ],
-          ],
-          if (showAudioSection) ...[
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: _sectionTitle(
-                      context, 'الصوت والإشعارات', Icons.notifications),
-                ),
-                GestureDetector(
-                  onTap: _showAdhanStatus,
-                  child: Semantics(
-                    button: true,
-                    label: 'حالة صوت الأذان',
-                    child: Container(
-                      width: 14,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: _adhanStatus == null
-                            ? Colors.grey
-                            : _adhanStatus!.isHealthy
-                                ? Colors.green
-                                : Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Column(
-                  children: [
-                    SwitchListTile.adaptive(
-                      value: _adhanEnabled,
-                      onChanged: _setAdhanEnabled,
-                      secondary: const Icon(Icons.volume_up_rounded,
-                          color: AppColors.deepGreen),
-                      title: Text(_adhanEnabled
-                          ? 'صوت الأذان يعمل'
-                          : 'صوت الأذان متوقف'),
-                      subtitle: const Text(
-                          'فعّل أو أوقف الصوت ثم اضغط حفظ الإعدادات'),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.tune),
-                      title: const Text('مستوى صوت الأذان'),
-                      subtitle: Slider(
-                        value: _adhanVolume,
-                        min: 0,
-                        max: 1,
-                        divisions: 20,
-                        label: '${(_adhanVolume * 100).round()}%',
-                        onChanged: _setAdhanVolume,
-                      ),
-                      trailing: Text('${(_adhanVolume * 100).round()}%'),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.lightGold.withValues(alpha: .22),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.volume_up_rounded,
-                                color: AppColors.deepGreen),
-                            const SizedBox(width: 10),
-                            const Expanded(
-                              child: Text(
-                                'لكي يعمل الأذان تلقائيًا في الخلفية وحتى مع الصامت، اسمح للتطبيق بتجاوز وضع عدم الإزعاج من إعدادات الهاتف.',
-                                textAlign: TextAlign.right,
-                                style: TextStyle(fontSize: 12, height: 1.5),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            TextButton(
-                              onPressed: () async {
-                                try {
-                                  final opened = await NotificationService
-                                      .requestBackgroundAdhanAccess();
-                                  if (!context.mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(opened
-                                          ? 'فعّل السماح للتطبيق بتجاوز عدم الإزعاج، ثم ارجع للتطبيق.'
-                                          : 'افتح إعدادات الإشعارات واسمح للتطبيق بتشغيل الأذان في الخلفية.'),
-                                    ),
-                                  );
-                                } catch (error, stackTrace) {
-                                  debugPrint(
-                                      'Failed to open adhan access settings: '
-                                      '$error\n$stackTrace');
-                                }
-                              },
-                              child: const Text('السماح'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const Divider(height: 1),
-                    _soundLibrarySection(
-                      title: 'أصوات أذان الفجر',
-                      paths: _fajrAdhanPaths,
-                      selectedPath: _selectedFajrAdhanPath,
-                      fajr: true,
-                    ),
-                    _soundLibrarySection(
-                      title: 'أصوات أذان باقي الصلوات',
-                      paths: _regularAdhanPaths,
-                      selectedPath: _selectedRegularAdhanPath,
-                      fajr: false,
-                    ),
-                    _notificationSoundTile(),
-                    if (kDebugMode)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            try {
-                              await NotificationService.debugPlayAdhanNow();
-                            } catch (error, stackTrace) {
-                              debugPrint(
-                                  '[ADHAN] Manual test error: $error\n$stackTrace');
-                            }
-                          },
-                          icon: const Icon(Icons.play_arrow_rounded),
-                          label: const Text('اختبار صوت الأذان (Debug)'),
-                        ),
-                      ),
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      child: Text(
-                        'يتم استخدام مستوى إشعارات الهاتف عند تشغيل الأذان في الخلفية.',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.icon(
-                          onPressed:
-                              _savingAdhanSettings ? null : _saveAdhanSettings,
-                          icon: _savingAdhanSettings
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.save_outlined),
-                          label: Text(_savingAdhanSettings
-                              ? 'جارٍ الحفظ...'
-                              : 'حفظ إعدادات الأذان'),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-          if (showPrayerDisplaySection) ...[
-            const SizedBox(height: 24),
-            _sectionTitle(context, 'عرض بطاقات الصلاة', Icons.view_carousel),
-            const SizedBox(height: 8),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: DropdownButtonFormField<String>(
-                  initialValue: _prayerCardAnimation,
-                  decoration: const InputDecoration(
-                    labelText: 'حركة التقليب بين الصلوات',
-                    prefixIcon: Icon(Icons.animation),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'slide',
-                      child: Text('انزلاق سلس مع تلاشي'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'fade',
-                      child: Text('تلاشي ناعم'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'scale',
-                      child: Text('تكبير لطيف'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'rotation',
-                      child: Text('دوران خفيف'),
-                    ),
-                  ],
-                  onChanged: _setPrayerCardAnimation,
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: 24),
-          _sectionTitle(context, 'حجم خط التطبيق', Icons.format_size),
-          const SizedBox(height: 8),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('صغير'),
-                      Text(
-                        '${(_fontScale * 100).round()}%',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const Text('كبير جدًا'),
-                    ],
-                  ),
-                  Slider(
-                    value: _fontScale,
-                    min: 0.85,
-                    max: 1.35,
-                    divisions: 10,
-                    label: '${(_fontScale * 100).round()}%',
-                    onChanged: _setFontScale,
-                  ),
-                  const Text(
-                    'يتغير حجم النص في جميع شاشات التطبيق فورًا.',
-                    textAlign: TextAlign.right,
-                    style: TextStyle(fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          _sectionTitle(context, 'مظهر التطبيق', Icons.palette_outlined),
-          const SizedBox(height: 8),
-          Card(
-            child: SwitchListTile.adaptive(
-              value: _darkMode,
-              onChanged: _setDarkMode,
-              secondary: Icon(
-                _darkMode ? Icons.dark_mode : Icons.light_mode,
-              ),
-              title: const Text('الوضع الداكن'),
-              subtitle: Text(
-                _darkMode ? 'تم تفعيل الوضع الداكن' : 'استخدم الألوان الفاتحة',
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            child: SwitchListTile.adaptive(
-              value: !themeProvider.isClassicMinimal,
-              onChanged: (_) => context.read<ThemeProvider>().toggleTheme(),
-              secondary: const Icon(Icons.auto_awesome_outlined),
-              title: const Text('الثيم الإسلامي المزخرف'),
-              subtitle: Text(
-                themeProvider.isClassicMinimal
-                    ? 'الثيم الحالي: الكلاسيكي البسيط'
-                    : 'الثيم الحالي: المزخرف والفاخر',
-              ),
-            ),
-          ),
-          if (showRightsSection) ...[
-            const SizedBox(height: 24),
-            _sectionTitle(
-                context, 'حقوق التطبيق والتواصل', Icons.verified_user),
-            const SizedBox(height: 8),
-            Card(
-              clipBehavior: Clip.antiAlias,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.deepGreen.withValues(alpha: 0.12),
-                      Theme.of(context).colorScheme.surface,
-                    ],
-                    begin: Alignment.topRight,
-                    end: Alignment.bottomLeft,
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      const CircleAvatar(
-                        radius: 30,
-                        backgroundColor: AppColors.deepGreen,
-                        child: Icon(Icons.code, color: Colors.white, size: 30),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'رفيق المسلم',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'جميع الحقوق محفوظة لصانع التطبيق',
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 14),
-                      _contactTile(
-                        icon: Icons.person_outline,
-                        color: AppColors.deepGreen,
-                        title: 'صانع التطبيق',
-                        subtitle: 'محمد أحمد',
-                      ),
-                      _contactTile(
-                        icon: Icons.email_outlined,
-                        color: Colors.indigo,
-                        title: 'البريد الإلكتروني',
-                        subtitle: 'mohamedd0103319@gmail.com',
-                        onTap: () => _openContact(
-                          Uri(
-                            scheme: 'mailto',
-                            path: 'mohamedd0103319@gmail.com',
-                            queryParameters: {
-                              'subject': 'التواصل من تطبيق رفيق المسلم'
-                            },
-                          ),
-                          'تعذر فتح تطبيق البريد الإلكتروني',
-                        ),
-                      ),
-                      _contactTile(
-                        icon: Icons.chat_rounded,
-                        color: const Color(0xFF25D366),
-                        title: 'واتساب',
-                        subtitle: 'راسل صانع التطبيق عبر واتساب',
-                        onTap: () => _openContact(
-                          Uri.parse('https://wa.me/201040937964'),
-                          'تعذر فتح واتساب',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-          if (!showLocationSection && !showAudioSection && !showRightsSection)
+          const SizedBox(height: 18),
+          if (visibleSections.isEmpty)
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 32),
+              padding: EdgeInsets.symmetric(vertical: 40),
               child: Center(
                 child: Text('لا توجد إعدادات مطابقة للبحث'),
+              ),
+            )
+          else
+            ...visibleSections.map(
+              (section) => Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.deepGreen.withValues(alpha: 0.15),
+                  ),
+                ),
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    dividerColor: Colors.transparent,
+                  ),
+                  child: ExpansionTile(
+                    initiallyExpanded: true,
+                    tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+                    childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    title: Row(
+                      children: [
+                        Icon(section.icon, color: AppColors.deepGreen),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            section.title,
+                            textAlign: TextAlign.right,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
+                      ],
+                    ),
+                    children: section.rows
+                        .map(
+                          (row) => Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: row.content,
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
               ),
             ),
         ],
       ),
-    );
-  }
-
-  Widget _sectionTitle(BuildContext context, String title, IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, color: AppColors.deepGreen),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-      ],
     );
   }
 
@@ -810,8 +714,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String? selectedPath,
     required bool fajr,
   }) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.softGreen.withValues(alpha: .35),
+        borderRadius: BorderRadius.circular(14),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -823,64 +731,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
               IconButton(
-                tooltip: 'إضافة صوت',
                 onPressed: () => _pickAdhanFile(fajr: fajr),
-                icon: const Icon(Icons.add_circle_outline,
+                icon: const Icon(Icons.add_circle_outline_rounded,
                     color: AppColors.deepGreen),
               ),
             ],
           ),
           if (paths.isEmpty)
-            Text('لم تتم إضافة أصوات مخصصة',
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                'لم تتم إضافة أصوات مخصصة',
                 textAlign: TextAlign.right,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12))
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              ),
+            )
           else
-            ...paths.map(
-              (path) => ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: Text(path.split(RegExp(r'[/\\]')).last,
+            ...paths.map((path) => ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    path.split(RegExp(r'[/\\]')).last,
                     textAlign: TextAlign.right,
                     maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-                trailing: IconButton(
-                  tooltip: 'تشغيل / إيقاف',
-                  icon: Icon(
-                    _audioPlayer.state == PlayerState.playing &&
-                            (fajr
-                                    ? _selectedFajrAdhanPath
-                                    : _selectedRegularAdhanPath) ==
-                                path
-                        ? Icons.stop_circle_outlined
-                        : Icons.play_circle_outline,
-                    color: AppColors.gold,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  onPressed: () => _togglePreview(path, fajr: fajr),
-                ),
-                onTap: () {
-                  setState(() {
-                    if (fajr) {
-                      _selectedFajrAdhanPath = path;
-                    } else {
-                      _selectedRegularAdhanPath = path;
-                    }
-                  });
-                },
-                subtitle: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    if (selectedPath == path)
-                      const Text('مستخدم حاليًا',
-                          style: TextStyle(
-                              color: AppColors.success, fontSize: 11)),
-                    TextButton(
-                      onPressed: () => _removeAdhanFile(fajr: fajr, path: path),
-                      child: const Text('حذف الصوت'),
+                  trailing: IconButton(
+                    onPressed: () => _togglePreview(path, fajr: fajr),
+                    icon: Icon(
+                      _audioPlayer.state == PlayerState.playing &&
+                              (fajr ? _selectedFajrAdhanPath : _selectedRegularAdhanPath) ==
+                                  path
+                          ? Icons.stop_circle_outlined
+                          : Icons.play_circle_outline_rounded,
+                      color: AppColors.gold,
                     ),
-                  ],
-                ),
-              ),
-            ),
+                  ),
+                  subtitle: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (selectedPath == path)
+                        const Text('مستخدم حاليًا',
+                            style: TextStyle(
+                              color: AppColors.success,
+                              fontSize: 11,
+                            )),
+                      TextButton(
+                        onPressed: () => _removeAdhanFile(fajr: fajr, path: path),
+                        child: const Text('حذف'),
+                      ),
+                    ],
+                  ),
+                  onTap: () {
+                    setState(() {
+                      if (fajr) {
+                        _selectedFajrAdhanPath = path;
+                      } else {
+                        _selectedRegularAdhanPath = path;
+                      }
+                    });
+                  },
+                )),
         ],
       ),
     );
@@ -921,49 +832,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+}
 
-  Widget _contactTile({
-    required IconData icon,
-    required Color color,
-    required String title,
-    required String subtitle,
-    VoidCallback? onTap,
-  }) {
-    return Card(
-      elevation: 0,
-      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.72),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        splashColor: color.withValues(alpha: 0.16),
-        highlightColor: color.withValues(alpha: 0.08),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: color.withValues(alpha: 0.14),
-                child: Icon(icon, color: color),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 2),
-                    Text(subtitle,
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
-                  ],
-                ),
-              ),
-              if (onTap != null)
-                Icon(Icons.arrow_forward_ios_rounded, size: 16, color: color),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+class _SettingsSectionData {
+  final String title;
+  final IconData icon;
+  final List<_SettingRowData> rows;
+
+  const _SettingsSectionData({
+    required this.title,
+    required this.icon,
+    required this.rows,
+  });
+}
+
+class _SettingRowData {
+  final String title;
+  final String searchText;
+  final Widget content;
+
+  const _SettingRowData({
+    required this.title,
+    required this.searchText,
+    required this.content,
+  });
 }

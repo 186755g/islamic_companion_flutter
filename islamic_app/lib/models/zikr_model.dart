@@ -18,8 +18,10 @@ class Zikr {
 
   bool get isCompleted => currentCount >= targetCount;
 
-  void increment() {
-    if (currentCount < targetCount) currentCount++;
+  bool increment() {
+    if (currentCount >= targetCount) return false;
+    currentCount++;
+    return currentCount >= targetCount;
   }
 
   void reset() => currentCount = 0;

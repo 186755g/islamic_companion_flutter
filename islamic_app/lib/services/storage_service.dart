@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/prayer_model.dart';
 import '../models/streak_model.dart';
@@ -113,6 +113,35 @@ class StorageService {
   static Future<void> setDarkMode(bool enabled) async {
     await _settings.put('dark_mode', enabled);
     darkModeNotifier.value = enabled;
+  }
+
+  static ThemeMode getThemeModeSetting() {
+    final value = _settings.get('theme_mode') as String?;
+    switch (value) {
+      case 'dark':
+        return ThemeMode.dark;
+      case 'system':
+        return ThemeMode.system;
+      case 'light':
+      default:
+        return ThemeMode.light;
+    }
+  }
+
+  static Future<void> setThemeModeSetting(ThemeMode mode) async {
+    switch (mode) {
+      case ThemeMode.dark:
+        await _settings.put('theme_mode', 'dark');
+        await setDarkMode(true);
+        break;
+      case ThemeMode.system:
+        await _settings.put('theme_mode', 'system');
+        break;
+      case ThemeMode.light:
+        await _settings.put('theme_mode', 'light');
+        await setDarkMode(false);
+        break;
+    }
   }
 
   static AppThemeType getThemeType() {
