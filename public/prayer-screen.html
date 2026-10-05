@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0f382c" />
+  <title>رفيق المسلم — الصلاة</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Readex+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ========== الألوان (الوضع الفاتح) ========== */
+    :root {
+      color-scheme: light;
+      --background: #fdfbf7;
+      --foreground: #13241e;
+      --card: #ffffff;
+      --primary: #0f382c;
+      --primary-foreground: #fdfbf7;
+      --muted: #f4efe4;
+      --muted-foreground: #66756e;
+      --accent: #f6edd0;
+      --accent-foreground: #6b5410;
+      --border: #ebe4d6;
+      --input: #e4dccb;
+      --gold: #d4af37;
+      --gold-soft: #f3e6bb;
+      --hero: #0f382c;
+      --hero-foreground: #fdfbf7;
+      --peach: #fde4d4;   --peach-fg: #8a4521;
+      --butter: #fbf1c7;  --butter-fg: #7a5c0c;
+      --lilac: #e8e0f8;   --lilac-fg: #4f3b88;
+      --sky: #dbecf8;     --sky-fg: #1f5578;
+      --mint: #dcefe5;    --mint-fg: #0f5a3f;
+      --shadow: 0 1px 2px rgb(15 56 44 / 0.04), 0 8px 24px -12px rgb(15 56 44 / 0.12);
+      --font-sans: 'Readex Pro', system-ui, sans-serif;
+      --font-quran: 'Amiri', serif;
+    }
+
+    /* ========== الوضع الداكن ========== */
+    .dark {
+      color-scheme: dark;
+      --background: #0a1612;
+      --foreground: #ece7da;
+      --card: #11211b;
+      --primary: #3fa37f;
+      --primary-foreground: #06130e;
+      --muted: #172b24;
+      --muted-foreground: #93a49c;
+      --accent: #2c2611;
+      --accent-foreground: #e8cd78;
+      --border: #1f352d;
+      --input: #27413a;
+      --gold: #dcbc52;
+      --gold-soft: #3a3215;
+      --hero: #12382c;
+      --hero-foreground: #f4efe2;
+      --peach: #3a2419;   --peach-fg: #f6c3a3;
+      --butter: #352e14;  --butter-fg: #f0d98a;
+      --lilac: #2a2340;   --lilac-fg: #cdbff3;
+      --sky: #172d3d;     --sky-fg: #a9d2ef;
+      --mint: #143327;    --mint-fg: #9fdcbf;
+      --shadow: 0 8px 24px -12px rgb(0 0 0 / 0.5);
+    }
+
+    /* ========== أساسيات ========== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: var(--font-sans);
+      background: #efe9dc;
+      color: var(--foreground);
+      display: flex;
+      justify-content: center;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+    ul { list-style: none; }
+    svg { flex-shrink: 0; }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; overflow: hidden;
+      clip: rect(0 0 0 0); white-space: nowrap;
+    }
+
+    /* ========== إطار التطبيق ========== */
+    .app {
+      position: relative;
+      width: 100%;
+      max-width: 430px;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--background);
+      color: var(--foreground);
+    }
+    @media (min-width: 768px) {
+      body { align-items: center; padding: 2rem; }
+      .app {
+        width: 400px;
+        height: 844px;
+        border: 10px solid #14211c;
+        border-radius: 48px;
+        box-shadow: 0 40px 80px -30px rgb(15 56 44 / 0.5);
+      }
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 40px 1fr 40px;
+      align-items: center;
+      padding: 12px 16px 8px;
+    }
+    .topbar h1 { text-align: center; font-size: 1.125rem; font-weight: 600; color: var(--primary); }
+    .icon-btn {
+      width: 40px; height: 40px; border-radius: 999px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .2s;
+    }
+    .icon-btn:hover { background: var(--muted); }
+
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 16px 112px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      scrollbar-width: none;
+    }
+    .content::-webkit-scrollbar { display: none; }
+
+    .card {
+      background: var(--card);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+    }
+    .muted { color: var(--muted-foreground); }
+    .xs { font-size: .75rem; }
+    .section-title { font-size: 1rem; font-weight: 600; }
+
+    /* ========== حديث اليوم ========== */
+    .hadith {
+      background: var(--accent);
+      border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
+      border-radius: 28px;
+      padding: 20px;
+    }
+    .hadith-head {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--accent-foreground);
+    }
+    .hadith-head h2 { font-size: .875rem; font-weight: 600; }
+    .hadith-head .cal { margin-right: auto; opacity: .6; }
+    .hadith .quote-icon { margin-top: 12px; color: var(--gold); }
+    .hadith blockquote {
+      margin-top: 4px;
+      font-family: var(--font-quran);
+      font-size: 1.5rem;
+      line-height: 2.1;
+      text-wrap: pretty;
+    }
+    .hadith .source { margin-top: 8px; }
+
+    /* ========== بطاقة التقدم الرئيسية ========== */
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border-radius: 28px;
+      padding: 20px;
+      background-color: var(--hero);
+      color: var(--hero-foreground);
+      box-shadow: var(--shadow);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%23D4AF37' stroke-opacity='0.22' stroke-width='1'%3E%3Crect x='16' y='16' width='24' height='24'/%3E%3Crect x='16' y='16' width='24' height='24' transform='rotate(45 28 28)'/%3E%3Ccircle cx='28' cy='28' r='6'/%3E%3C/g%3E%3C/svg%3E");
+      background-size: 56px 56px;
+    }
+    .hero-top { display: flex; align-items: center; gap: 20px; }
+    .ring { position: relative; width: 104px; height: 104px; }
+    .ring svg { transform: rotate(-90deg); }
+    .ring .track { stroke: color-mix(in srgb, var(--hero-foreground) 15%, transparent); }
+    .ring .bar { stroke: var(--gold); transition: stroke-dashoffset .7s ease; }
+    .ring-label {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .ring-label strong { font-size: 1.875rem; line-height: 1; font-weight: 700; }
+    .ring-label span { margin-top: 4px; font-size: .75rem; opacity: .7; }
+    .hero-info { flex: 1; }
+    .hero-info .date { font-size: .875rem; opacity: .7; }
+    .hero-info h2 { margin-top: 4px; font-size: 1.25rem; font-weight: 600; text-wrap: balance; }
+    .bar-track {
+      margin-top: 12px; height: 6px; border-radius: 999px; overflow: hidden;
+      background: color-mix(in srgb, var(--hero-foreground) 15%, transparent);
+    }
+    .bar-fill { height: 100%; border-radius: 999px; background: var(--gold); transition: width .7s ease; }
+
+    .streak {
+      margin-top: 20px; padding: 12px; border-radius: 20px;
+      background: color-mix(in srgb, var(--hero-foreground) 7%, transparent);
+    }
+    .streak-title { display: flex; align-items: center; gap: 8px; font-size: .875rem; font-weight: 500; margin-bottom: 8px; }
+    .streak-title svg { color: var(--gold); }
+    .streak dl { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; }
+    .streak dl > div { display: flex; flex-direction: column-reverse; gap: 2px; }
+    .streak dl > div + div { border-right: 1px solid color-mix(in srgb, var(--hero-foreground) 10%, transparent); }
+    .streak dt { font-size: 11px; opacity: .65; }
+    .streak dd { font-size: 1.125rem; font-weight: 700; }
+
+    /* ========== الصلاة القادمة ========== */
+    .next {
+      display: flex; align-items: center; gap: 16px; padding: 16px;
+      border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+    }
+    .next-icon {
+      width: 56px; height: 56px; border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--gold-soft); color: var(--accent-foreground);
+    }
+    .next-info { flex: 1; }
+    .next-info .name { font-size: 1.125rem; font-weight: 600; }
+    .next-time { text-align: left; }
+    .next-time strong { display: block; font-size: 1.5rem; font-weight: 700; color: var(--primary); font-variant-numeric: tabular-nums; }
+
+    /* ========== مواقيت اليوم ========== */
+    .times-list {
+      display: flex; gap: 12px;
+      overflow-x: auto;
+      margin: 12px -16px 0;
+      padding: 6px 16px;
+      scrollbar-width: none;
+    }
+    .times-list::-webkit-scrollbar { display: none; }
+    .time-chip {
+      min-width: 84px;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 12px; border-radius: 20px;
+    }
+    .time-chip .n { font-size: .875rem; font-weight: 500; }
+    .time-chip .t { font-size: 1.125rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .time-chip .p { font-size: 11px; opacity: .75; }
+    .time-chip.is-next { box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--gold); }
+    .tone-lilac  { background: var(--lilac);  color: var(--lilac-fg); }
+    .tone-butter { background: var(--butter); color: var(--butter-fg); }
+    .tone-peach  { background: var(--peach);  color: var(--peach-fg); }
+    .tone-sky    { background: var(--sky);    color: var(--sky-fg); }
+    .tone-mint   { background: var(--mint);   color: var(--mint-fg); }
+
+    /* ========== متابعة الصلوات ========== */
+    .tracker { padding: 8px; }
+    .tracker-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 12px 4px; }
+    .group-label { padding: 8px 12px 0; font-size: .75rem; font-weight: 500; color: var(--primary); }
+    .divider { margin: 4px 12px; border-top: 1px dashed var(--border); }
+    .check-row {
+      width: 100%;
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px; border-radius: 20px; text-align: right;
+      transition: background .2s;
+    }
+    .check-row:hover { background: color-mix(in srgb, var(--muted) 60%, transparent); }
+    .check-row:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+    .box {
+      width: 24px; height: 24px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid var(--input); background: var(--card);
+      color: var(--primary-foreground);
+      transition: all .2s;
+    }
+    .box svg { opacity: 0; transition: opacity .15s; }
+    .check-row[aria-checked="true"] .box { background: var(--primary); border-color: var(--primary); }
+    .check-row[aria-checked="true"] .box svg { opacity: 1; }
+    .check-text { flex: 1; }
+    .check-text .title { display: block; font-size: .875rem; font-weight: 500; }
+    .check-text .sub { display: block; font-size: .75rem; color: var(--muted-foreground); }
+    .check-row[aria-checked="true"] .title { color: var(--muted-foreground); text-decoration: line-through; }
+    .points {
+      padding: 2px 8px; border-radius: 999px;
+      background: var(--gold-soft); color: var(--accent-foreground);
+      font-size: 11px; font-weight: 600;
+    }
+
+    /* ========== إنجاز الأسبوع ========== */
+    .week { padding: 16px; }
+    .week-head { display: flex; align-items: center; justify-content: space-between; }
+    .week-head > div { display: flex; align-items: center; gap: 8px; }
+    .week-icon {
+      width: 36px; height: 36px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--mint); color: var(--mint-fg);
+    }
+    .week-head h2 { font-size: .875rem; font-weight: 600; }
+    .week-percent { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+    .bars { margin-top: 16px; display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .bar-box { width: 100%; height: 64px; display: flex; align-items: flex-end; overflow: hidden; border-radius: 8px; background: var(--muted); }
+    .bar-box span { width: 100%; border-radius: 8px; background: var(--primary); transition: height .5s ease; }
+    .bar-box span.today { background: var(--gold); }
+    .bar-col small { font-size: 10px; color: var(--muted-foreground); }
+
+    /* ========== شريط التنقل السفلي ========== */
+    .bottom-nav {
+      position: absolute; left: 12px; right: 12px; bottom: 12px;
+      padding: 8px; border-radius: 28px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--card) 95%, transparent);
+      backdrop-filter: blur(8px);
+      box-shadow: var(--shadow);
+    }
+    .bottom-nav ul { display: flex; justify-content: space-between; }
+    .bottom-nav li { flex: 1; }
+    .nav-btn { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0; }
+    .nav-btn .pill {
+      width: 56px; height: 32px; border-radius: 999px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted-foreground); transition: all .3s;
+    }
+    .nav-btn .lbl { font-size: 11px; color: var(--muted-foreground); }
+    .nav-btn:hover .pill { color: var(--foreground); }
+    .nav-btn[aria-current="page"] .pill {
+      background: color-mix(in srgb, var(--primary) 10%, transparent);
+      color: var(--primary);
+    }
+    .nav-btn[aria-current="page"] .lbl { color: var(--primary); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+
+    <!-- الشريط العلوي -->
+    <header class="topbar">
+      <span></span>
+      <h1>رفيق المسلم</h1>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="تبديل الوضع الداكن">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </button>
+    </header>
+
+    <main class="content">
+
+      <!-- حديث اليوم -->
+      <section class="hadith" aria-labelledby="hadith-heading">
+        <div class="hadith-head">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/></svg>
+          <h2 id="hadith-heading">حديث اليوم</h2>
+          <svg class="cal" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        </div>
+        <svg class="quote-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/><path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/></svg>
+        <blockquote>إِنَّمَا الْأَعْمَالُ بِالنِّيَّاتِ، وَإِنَّمَا لِكُلِّ امْرِئٍ مَا نَوَى</blockquote>
+        <p class="source xs muted">متفق عليه — رواه البخاري ومسلم</p>
+      </section>
+
+      <!-- بطاقة التقدم -->
+      <section class="hero" aria-label="ملخص اليوم">
+        <div class="hero-top">
+          <div class="ring" role="img" aria-label="الصلوات المكتملة اليوم">
+            <svg width="104" height="104" viewBox="0 0 104 104">
+              <circle class="track" cx="52" cy="52" r="47.5" fill="none" stroke-width="9" />
+              <circle class="bar" id="ring-bar" cx="52" cy="52" r="47.5" fill="none" stroke-width="9"
+                      stroke-linecap="round" stroke-dasharray="298.45" stroke-dashoffset="179.07" />
+            </svg>
+            <div class="ring-label">
+              <strong id="ring-count">٢</strong>
+              <span>من ٥</span>
+            </div>
+          </div>
+          <div class="hero-info">
+            <p class="date">الأحد، ٢٣ ذو القعدة ١٤٤٧</p>
+            <h2 id="hero-title">أكملت ٢ من ٥ صلوات</h2>
+            <div class="bar-track"><div class="bar-fill" id="hero-bar" style="width: 40%"></div></div>
+          </div>
+        </div>
+
+        <div class="streak">
+          <div class="streak-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+            سلسلة المواظبة
+          </div>
+          <dl>
+            <div><dt>الحالية</dt><dd>١٢</dd></div>
+            <div><dt>الأطول</dt><dd>٣٠</dd></div>
+            <div><dt>أيام النشاط</dt><dd>٨٧</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <!-- الصلاة القادمة -->
+      <section class="card next" aria-label="الصلاة القادمة">
+        <div class="next-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v2M4.93 4.93l1.41 1.41M20 12h2M19.07 4.93l-1.41 1.41M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/></svg>
+        </div>
+        <div class="next-info">
+          <p class="xs muted">الصلاة القادمة</p>
+          <p class="name">صلاة العصر</p>
+          <p class="xs muted">متبقي ٣ س و ١٢ د</p>
+        </div>
+        <div class="next-time">
+          <strong>٠٤:٢٨</strong>
+          <span class="xs muted">مساءً · ٣٢°</span>
+        </div>
+      </section>
+
+      <!-- مواقيت اليوم -->
+      <section aria-labelledby="times-heading">
+        <h2 id="times-heading" class="section-title">مواقيت اليوم</h2>
+        <ul class="times-list">
+          <li class="time-chip tone-lilac"><span class="n">الفجر</span><span class="t">٠٤:١٢</span><span class="p">صباحًا</span></li>
+          <li class="time-chip tone-butter"><span class="n">الظهر</span><span class="t">١٢:٥١</span><span class="p">مساءً</span></li>
+          <li class="time-chip tone-peach is-next"><span class="n">العصر</span><span class="t">٠٤:٢٨</span><span class="p">مساءً</span></li>
+          <li class="time-chip tone-sky"><span class="n">المغرب</span><span class="t">٠٧:٤٥</span><span class="p">مساءً</span></li>
+          <li class="time-chip tone-mint"><span class="n">العشاء</span><span class="t">٠٩:١٢</span><span class="p">مساءً</span></li>
+        </ul>
+      </section>
+
+      <!-- متابعة الصلوات -->
+      <section class="card tracker" aria-labelledby="tracker-heading">
+        <div class="tracker-head">
+          <h2 id="tracker-heading" class="section-title">متابعة الصلوات</h2>
+          <span class="xs muted" id="fard-summary">٢/٥ فرائض</span>
+        </div>
+
+        <p class="group-label">الفرائض</p>
+        <ul id="fard-list">
+          <li><button type="button" class="check-row" role="checkbox" aria-checked="true" data-group="fard">
+            <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span class="check-text"><span class="title">صلاة الفجر</span><span class="sub">٠٤:١٢ صباحًا</span></span>
+            <span class="points">+١٠</span>
+          </button></li>
+          <li><button type="button" class="check-row" role="checkbox" aria-checked="true" data-group="fard">
+            <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span class="check-text"><span class="title">صلاة الظهر</span><span class="sub">١٢:٥١ مساءً</span></span>
+            <span class="points">+١٠</span>
+          </button></li>
+          <li><button type="button" class="check-row" role="checkbox" aria-checked="false" data-group="fard">
+            <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span class="check-text"><span class="title">صلاة العصر</span><span class="sub">٠٤:٢٨ مساءً</span></span>
+            <span class="points">+١٠</span>
+          </button></li>
+          <li><button type="button" class="check-row" role="checkbox" aria-checked="false" data-group="fard">
+            <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span class="check-text"><span class="title">صلاة المغرب</span><span class="sub">٠٧:٤٥ مساءً</span></span>
+            <span class="points">+١٠</span>
+          </button></li>
+          <li><button type="button" class="check-row" role="checkbox" aria-checked="false" data-group="fard">
+            <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span class="check-text"><span class="title">صلاة العشاء</span><span class="sub">٠٩:١٢ مساءً</span></span>
+            <span class="points">+١٠</span>
+          </button></li>
+        </ul>
+
+        <div class="divider"></div>
+
+        <p class="group-label">السنن الرواتب</p>
+        <ul>
+          <li><button type="button" class="check-row" role="checkbox" aria-checked="false">
+            <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span class="check-text"><span class="title">سنة الفجر</span><span class="sub">٢ ركعات</span></span>
+            <span class="points">+٥</span>
+          </button></li>
+          <li><button type="button" class="check-row" role="checkbox" aria-checked="false">
+            <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span class="check-text"><span class="title">سنة الظهر القبلية</span><span class="sub">٤ ركعات</span></span>
+            <span class="points">+٥</span>
+          </button></li>
+          <li><button type="button" class="check-row" role="checkbox" aria-checked="false">
+            <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span class="check-text"><span class="title">سنة الظهر البعدية</span><span class="sub">٢ ركعات</span></span>
+            <span class="points">+٥</span>
+          </button></li>
+          <li><button type="button" class="check-row" role="checkbox" aria-checked="false">
+            <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span class="check-text"><span class="title">سنة المغرب</span><span class="sub">٢ ركعات</span></span>
+            <span class="points">+٥</span>
+          </button></li>
+          <li><button type="button" class="check-row" role="checkbox" aria-checked="false">
+            <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span class="check-text"><span class="title">سنة العشاء</span><span class="sub">٢ ركعات</span></span>
+            <span class="points">+٥</span>
+          </button></li>
+          <li><button type="button" class="check-row" role="checkbox" aria-checked="false">
+            <span class="box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span class="check-text"><span class="title">الوتر</span><span class="sub">ركعة واحدة</span></span>
+            <span class="points">+٥</span>
+          </button></li>
+        </ul>
+      </section>
+
+      <!-- إنجاز الأسبوع -->
+      <section class="card week" aria-labelledby="week-heading">
+        <div class="week-head">
+          <div>
+            <span class="week-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+            </span>
+            <div>
+              <h2 id="week-heading">إنجاز الأسبوع</h2>
+              <p class="xs muted" id="week-total">٢٨ من ٣٥ صلاة</p>
+            </div>
+          </div>
+          <span class="week-percent" id="week-percent">٨٠٪</span>
+        </div>
+        <div class="bars" aria-hidden="true">
+          <div class="bar-col"><div class="bar-box"><span style="height:100%"></span></div><small>سبت</small></div>
+          <div class="bar-col"><div class="bar-box"><span style="height:80%"></span></div><small>أحد</small></div>
+          <div class="bar-col"><div class="bar-box"><span style="height:100%"></span></div><small>إثنين</small></div>
+          <div class="bar-col"><div class="bar-box"><span style="height:60%"></span></div><small>ثلاثاء</small></div>
+          <div class="bar-col"><div class="bar-box"><span style="height:100%"></span></div><small>أربعاء</small></div>
+          <div class="bar-col"><div class="bar-box"><span style="height:80%"></span></div><small>خميس</small></div>
+          <div class="bar-col"><div class="bar-box"><span class="today" id="today-bar" style="height:40%"></span></div><small>اليوم</small></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- التنقل السفلي -->
+    <nav class="bottom-nav" aria-label="التنقل الرئيسي">
+      <ul>
+        <li><button type="button" class="nav-btn" aria-current="page">
+          <span class="pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" fill-opacity=".18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></span>
+          <span class="lbl">الصلاة</span>
+        </button></li>
+        <li><button type="button" class="nav-btn">
+          <span class="pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 14h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 16"/><path d="m7 20 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"/><path d="m2 15 6 6"/><path d="M19.5 8.5c.7-.7 1.5-1.6 1.5-2.7A2.73 2.73 0 0 0 16 4a2.78 2.78 0 0 0-5 1.8c0 1.2.8 2 1.5 2.8L16 12Z"/></svg></span>
+          <span class="lbl">الأذكار</span>
+        </button></li>
+        <li><button type="button" class="nav-btn">
+          <span class="pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg></span>
+          <span class="lbl">القرآن</span>
+        </button></li>
+        <li><button type="button" class="nav-btn">
+          <span class="pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="18" rx="1"/><path d="M7 3v18"/><path d="M20.4 18.9c.2.5-.1 1.1-.6 1.3l-1.9.7c-.5.2-1.1-.1-1.3-.6L11.1 5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z"/></svg></span>
+          <span class="lbl">المكتبة</span>
+        </button></li>
+        <li><button type="button" class="nav-btn">
+          <span class="pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></span>
+          <span class="lbl">التقدم</span>
+        </button></li>
+      </ul>
+    </nav>
+  </div>
+
+  <script>
+    const toArabic = (n) => String(n).replace(/\d/g, (d) => '٠١٢٣٤٥٦٧٨٩'[d]);
+    const CIRCUMFERENCE = 298.45;
+    const PAST_WEEK_TOTAL = 26;
+
+    function updateFard() {
+      const done = document.querySelectorAll('[data-group="fard"][aria-checked="true"]').length;
+      document.getElementById('ring-count').textContent = toArabic(done);
+      document.getElementById('ring-bar').style.strokeDashoffset = CIRCUMFERENCE * (1 - done / 5);
+      document.getElementById('hero-bar').style.width = (done / 5) * 100 + '%';
+      document.getElementById('hero-title').textContent =
+        done === 5 ? 'أتممت صلوات اليوم' : `أكملت ${toArabic(done)} من ٥ صلوات`;
+      document.getElementById('fard-summary').textContent = `${toArabic(done)}/٥ فرائض`;
+      document.getElementById('today-bar').style.height = (done / 5) * 100 + '%';
+      const total = PAST_WEEK_TOTAL + done;
+      document.getElementById('week-total').textContent = `${toArabic(total)} من ٣٥ صلاة`;
+      document.getElementById('week-percent').textContent = `${toArabic(Math.round((total / 35) * 100))}٪`;
+    }
+
+    document.querySelectorAll('.check-row').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        btn.setAttribute('aria-checked', btn.getAttribute('aria-checked') !== 'true');
+        if (btn.dataset.group === 'fard') updateFard();
+      });
+    });
+
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      document.getElementById('app').classList.toggle('dark');
+    });
+
+    updateFard();
+  </script>
+</body>
+</html>
