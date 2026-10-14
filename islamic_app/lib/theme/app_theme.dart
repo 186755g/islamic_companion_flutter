@@ -170,7 +170,7 @@ class AppCardStyles {
     vertical: AppSpacing.xs,
   );
 
-  static final RoundedRectangleBorder shape = const RoundedRectangleBorder(
+  static const RoundedRectangleBorder shape = RoundedRectangleBorder(
     borderRadius: AppRadius.largeAll,
     side: BorderSide(color: AppColors.divider, width: 1),
   );

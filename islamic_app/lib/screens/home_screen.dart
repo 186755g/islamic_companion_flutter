@@ -1124,10 +1124,10 @@ class _LibraryTabState extends State<_LibraryTab> {
                     ),
                   ),
                   const SizedBox(width: 14),
-                  Expanded(
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
-                      children: const [
+                      children: [
                         Text(
                           'المكتبة الإسلامية',
                           textAlign: TextAlign.right,

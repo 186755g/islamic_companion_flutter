@@ -340,7 +340,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 DropdownButtonFormField<String>(
-                  value: selected == 'اختر المحافظة' ? null : selected,
+                  initialValue: selected == 'اختر المحافظة' ? null : selected,
                   decoration: const InputDecoration(
                     labelText: 'المحافظة',
                     prefixIcon: Icon(Icons.location_city_rounded),
@@ -520,7 +520,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: 'حركة بطاقات الصلاة',
             searchText: 'حركة بطاقات الصلاة انزلاق تلاشي',
             content: DropdownButtonFormField<String>(
-              value: _prayerCardAnimation,
+              initialValue: _prayerCardAnimation,
               decoration: const InputDecoration(
                 labelText: 'حركة بطاقات الصلاة',
                 prefixIcon: Icon(Icons.animation_rounded),
@@ -536,7 +536,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
-      _SettingsSectionData(
+      const _SettingsSectionData(
         title: 'القرآن والأذكار',
         icon: Icons.menu_book_rounded,
         rows: [
@@ -544,18 +544,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: 'إعدادات القراءة',
             searchText: 'القرآن قراءة النص',
             content: ListTile(
-              title: const Text('إعدادات القراءة'),
-              subtitle: const Text('حجم الخط وتباعد النص يتم ضبطهما من المظهر العام.'),
-              leading: const Icon(Icons.chrome_reader_mode_rounded),
+              title: Text('إعدادات القراءة'),
+              subtitle: Text('حجم الخط وتباعد النص يتم ضبطهما من المظهر العام.'),
+              leading: Icon(Icons.chrome_reader_mode_rounded),
             ),
           ),
           _SettingRowData(
             title: 'إعدادات الأذكار',
             searchText: 'الأذكار حفظ تقدم الأذكار',
             content: ListTile(
-              title: const Text('إعدادات الأذكار'),
-              subtitle: const Text('يتم حفظ التقدم تلقائيًا داخل التطبيق عند كل تغيير.'),
-              leading: const Icon(Icons.auto_awesome_rounded),
+              title: Text('إعدادات الأذكار'),
+              subtitle: Text('يتم حفظ التقدم تلقائيًا داخل التطبيق عند كل تغيير.'),
+              leading: Icon(Icons.auto_awesome_rounded),
             ),
           ),
         ],
@@ -564,22 +564,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: 'التطبيق',
         icon: Icons.info_outline_rounded,
         rows: [
-          _SettingRowData(
+          const _SettingRowData(
             title: 'الخصوصية',
             searchText: 'الخصوصية بيانات محلية',
             content: ListTile(
-              title: const Text('الخصوصية'),
-              subtitle: const Text('يتم حفظ البيانات محليًا داخل التطبيق دون مشاركة خارجية.'),
-              leading: const Icon(Icons.privacy_tip_outlined),
+              title: Text('الخصوصية'),
+              subtitle: Text('يتم حفظ البيانات محليًا داخل التطبيق دون مشاركة خارجية.'),
+              leading: Icon(Icons.privacy_tip_outlined),
             ),
           ),
-          _SettingRowData(
+          const _SettingRowData(
             title: 'عن التطبيق',
             searchText: 'عن التطبيق وصف',
             content: ListTile(
-              title: const Text('عن التطبيق'),
-              subtitle: const Text('رفيق المسلم — تطبيق إسلامي لمتابعة الصلاة، الأذكار، والقرآن.'),
-              leading: const Icon(Icons.info_rounded),
+              title: Text('عن التطبيق'),
+              subtitle: Text('رفيق المسلم — تطبيق إسلامي لمتابعة الصلاة، الأذكار، والقرآن.'),
+              leading: Icon(Icons.info_rounded),
             ),
           ),
           _SettingRowData(
@@ -599,10 +599,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
-          _SettingRowData(
+          const _SettingRowData(
             title: 'إصدار التطبيق',
             searchText: 'إصدار التطبيق نسخة',
-            content: const ListTile(
+            content: ListTile(
               title: Text('إصدار التطبيق'),
               subtitle: Text('1.0.0+1'),
               leading: Icon(Icons.app_registration_rounded),
